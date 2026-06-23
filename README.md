@@ -1,38 +1,17 @@
 # Local Data Masker
 
-A local-first data masking tool for replacing sensitive real-world data with plausible fake data in PDFs, tables, and other document sources.
+A local-first data masking tool for replacing sensitive real-world data with plausible fake data in CSV/Excel files today, with PDFs and other document sources planned next.
 
-> **Status:** Phase 1 (structured data prototype) implemented  
-> **Core idea:** turn real personal, organizational, and content-specific data into realistic but fictional alternatives without sending files to external services.
-
----
-
-## Getting started
-
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -e ".[dev]"
-
-# Mask a CSV/XLSX file or a folder of them
-local-data-masker mask examples/sample_input.csv --output masked.csv --report report.json
-
-# Detect findings without writing any output
-local-data-masker scan examples/sample_input.csv --report findings.json
-
-# Run the test suite
-pytest
-```
-
-Phase 1 currently detects and masks `name`, `email`, `phone`, `iban`, `date` / `date_of_birth`, and `id`-style columns in CSV and Excel files, based on column-name heuristics with a value-shape fallback for unlabeled columns. Unrecognized columns (e.g. `course_title`) are left untouched. Use `--consistent` together with `--mapping` to reuse the same fake value for repeated originals across runs.
+> **Status:** Phase 2 started  
+> **Current focus:** structured data masking plus configurable semantic replacement profiles.
 
 ---
 
 ## Why this project exists
 
-Sensitive data is often not stored neatly in tables. It may appear in PDFs, exported reports, forms, learning documents, spreadsheets, screenshots, or mixed text sources.
+Sensitive data is often not stored neatly in databases. It may appear in PDFs, exported reports, forms, learning documents, spreadsheets, screenshots, or mixed text sources.
 
-This project aims to provide a local tool that can extract sensitive information from different sources and replace it with believable fake data while keeping the document readable and useful.
+This project aims to provide a local tool that extracts sensitive information from supported sources and replaces it with believable fake data while keeping the result readable and useful.
 
 Examples:
 
@@ -44,162 +23,101 @@ Examples:
 | `ben.miller@example.com` | `john.winter@example.test` |
 | `Employee ID: 481927` | `Employee ID: 735204` |
 
-The goal is not simply to redact data with black bars. The goal is to create **safe, realistic substitute data** that can still be used for demos, testing, documentation, e-learning examples, or portfolio pieces.
+The goal is not simply to redact data with black bars. The goal is to create **safe, realistic substitute data** for demos, testing, documentation, e-learning examples, portfolio screenshots, and internal prototypes.
 
 ---
 
-## What “masking” means here
+## What works now
 
-This project focuses on **data masking**.
+Phase 1/early Phase 2 currently supports:
 
-Data masking means that real values are replaced by artificial values. The output should look realistic, but it should no longer reveal the original person, customer, course, organization, or business case.
-
-This is different from simple anonymization or redaction:
-
-- **Redaction** removes or hides information.
-- **Pseudonymization** replaces data but may keep a reversible mapping.
-- **Anonymization** aims to make re-identification impossible.
-- **Masking** replaces sensitive values with plausible fake values while preserving usefulness.
-
-The first versions of this project should be treated as a **local masking and pseudonymization tool**, not as a legal guarantee of full anonymization.
-
----
-
-## Planned input sources
-
-- PDF files
 - CSV files
-- Excel files
-- Plain text files
-- DOCX files
-- Later: scanned PDFs and images via OCR
+- Excel files (`.xlsx`, `.xls`)
+- single files or folders of files
+- `mask` and `scan` CLI commands
+- column-based detection for:
+  - names
+  - email addresses
+  - phone numbers
+  - IBANs
+  - generic dates
+  - dates of birth
+  - ID-style columns
+- profile-based semantic masking for categories such as:
+  - course titles
+  - training names
+  - project names
+  - company/customer/supplier names
+  - departments
+  - product/application names
+- custom substring replacements such as `Money Laundering` -> `Healthy Nutrition`
+- consistent masking with a local mapping file
+- JSON audit/finding reports
+- safer reports that omit original values by default
 
 ---
 
-## Planned masking categories
+## Getting started
 
-The tool should be able to detect and replace different kinds of sensitive information.
-
-### Personal data
-
-- names
-- dates of birth
-- email addresses
-- phone numbers
-- postal addresses
-- employee IDs
-- customer IDs
-- insurance numbers
-- IBANs
-
-### Organizational data
-
-- company names
-- departments
-- locations
-- project names
-- customer names
-- supplier names
-
-### Content-specific data
-
-- course titles
-- training names
-- case study topics
-- document titles
-- product names
-- internal process names
-- medical, HR, legal, or compliance-related terms
-
-Example:
-
-```text
-Original:
-Ben Miller completed the course "Money Laundering" on 1975/02/21.
-
-Masked:
-John Winter completed the course "Healthy Nutrition" on 1976/03/20.
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e ".[dev]"
 ```
 
----
+Mask the included example file:
 
-## Key idea: semantic replacement
+```bash
+local-data-masker mask examples/sample_courses.csv \
+  --output masked/sample_courses_masked.csv \
+  --report reports/sample_courses_report.json \
+  --profile profiles/default.yaml \
+  --seed 42
+```
 
-The project should not only detect technical patterns such as emails or phone numbers. It should also support semantic replacement.
+Scan without writing a masked output file:
 
-That means:
+```bash
+local-data-masker scan examples/sample_courses.csv \
+  --report reports/findings.json \
+  --profile profiles/default.yaml
+```
 
-- a person should become another plausible person,
-- a date should become another plausible date,
-- a course title should become another harmless but realistic course title,
-- a medical topic should become another safe medical topic if the context requires it,
-- an internal project name should become a fictional project name,
-- the original document should remain coherent.
+Include original values in the report only when you explicitly need them for local review:
 
-Example:
+```bash
+local-data-masker scan examples/sample_courses.csv \
+  --report reports/findings_with_originals.json \
+  --profile profiles/default.yaml \
+  --include-originals
+```
 
-```text
-Original:
-Maria Schneider attended the course "Anti-Corruption and Money Laundering Prevention".
+Run the tests:
 
-Masked:
-Laura Weber attended the course "Workplace Health and Healthy Nutrition".
+```bash
+pytest
 ```
 
 ---
 
-## Masking modes
+## Custom masking profiles
 
-### 1. Consistent masking
-
-The same original value is always replaced with the same fake value within one project.
-
-Example:
-
-```text
-Ben Miller -> John Winter
-Ben Miller -> John Winter
-Ben Miller -> John Winter
-```
-
-This is useful when relationships in the document must remain understandable.
-
-### 2. One-off masking
-
-Each occurrence may receive a different fake value.
-
-Example:
-
-```text
-Ben Miller -> John Winter
-Ben Miller -> Daniel Brooks
-Ben Miller -> Peter Howard
-```
-
-This is useful when strict consistency is not needed.
-
-### 3. Rule-based masking
-
-The user can define custom replacements.
+Profiles are YAML files that define semantic replacements without changing Python code.
 
 Example:
 
 ```yaml
 custom_replacements:
-  "Money Laundering": "Healthy Nutrition"
-  "Internal Audit": "Learning Review"
-  "Acme GmbH": "Example Industries GmbH"
-```
+  Money Laundering: Healthy Nutrition
+  Anti-Corruption: Workplace Safety
+  Internal Audit: Learning Review
 
-### 4. Category-based masking
-
-The tool replaces values based on categories.
-
-Example:
-
-```yaml
-categories:
-  course_compliance:
+column_categories:
+  course_title:
+    columns:
+      - course
+      - course_title
+      - training_name
     replacements:
       - Healthy Nutrition
       - Workplace Safety Basics
@@ -207,193 +125,135 @@ categories:
       - Ergonomics at Work
 ```
 
----
-
-## Intended workflow
-
-```mermaid
-flowchart LR
-    A[Input files] --> B[Extract text and tables]
-    B --> C[Detect sensitive values]
-    C --> D[Classify entities]
-    D --> E[Generate fake replacements]
-    E --> F[Apply masking]
-    F --> G[Export masked output]
-    G --> H[Create audit report]
-```
-
----
-
-## Example CLI concept
-
-Scan a folder and create a findings report:
-
-```bash
-local-data-masker scan ./input --report findings.json
-```
-
-Mask all supported files in a folder:
-
-```bash
-local-data-masker mask ./input --output ./output --consistent
-```
-
-Mask a single PDF:
-
-```bash
-local-data-masker mask document.pdf --output document_masked.pdf
-```
-
-Use a custom masking profile:
-
-```bash
-local-data-masker mask ./input --profile ./profiles/healthcare-demo.yaml --output ./output
-```
-
-Run a dry run without changing files:
-
-```bash
-local-data-masker mask ./input --dry-run --report preview.json
-```
-
----
-
-## Possible project structure
+The default profile is located here:
 
 ```text
-local-data-masker/
-├── README.md
-├── pyproject.toml
-├── src/
-│   └── local_data_masker/
-│       ├── __init__.py
-│       ├── cli.py
-│       ├── extractors/
-│       │   ├── pdf_extractor.py
-│       │   ├── table_extractor.py
-│       │   ├── docx_extractor.py
-│       │   └── text_extractor.py
-│       ├── detectors/
-│       │   ├── regex_detector.py
-│       │   ├── ner_detector.py
-│       │   ├── semantic_detector.py
-│       │   └── custom_rules.py
-│       ├── maskers/
-│       │   ├── faker_provider.py
-│       │   ├── semantic_replacer.py
-│       │   ├── mapping_store.py
-│       │   └── replacer.py
-│       ├── exporters/
-│       │   ├── pdf_exporter.py
-│       │   ├── table_exporter.py
-│       │   ├── docx_exporter.py
-│       │   └── report_exporter.py
-│       └── config/
-│           └── default_rules.yaml
-├── profiles/
-├── tests/
-├── examples/
-└── docs/
+profiles/default.yaml
 ```
+
+### Custom replacements
+
+Custom replacements are applied inside cell text. This means a value such as:
+
+```text
+Completed course Money Laundering with follow-up Internal Audit.
+```
+
+can become:
+
+```text
+Completed course Healthy Nutrition with follow-up Learning Review.
+```
+
+### Semantic column categories
+
+Profile column categories allow the tool to mask fields such as `course_title`, `project_name`, `company`, or `department` even when they are not classic PII.
+
+This is important because the project is not limited to personal data. It also masks sensitive business context and topic-specific information.
+
+---
+
+## Masking modes
+
+### One-off masking
+
+Default behavior. Each detected value receives a generated fake value.
+
+```bash
+local-data-masker mask input.csv --output output.csv
+```
+
+### Consistent masking
+
+The same original value is always replaced with the same fake value within the same mapping file.
+
+```bash
+local-data-masker mask input.csv \
+  --output output.csv \
+  --consistent \
+  --mapping local.mapping.json
+```
+
+> Mapping files contain original values and are sensitive. Do not commit or share them.
 
 ---
 
 ## Privacy and security principles
 
-This project should follow these principles from the start:
+This project follows these principles:
 
 - **Local-first:** no cloud upload and no external API calls by default.
 - **No telemetry:** the tool should not collect usage data.
-- **No sensitive logs:** original values must not be written to normal logs.
-- **Dry-run mode:** users should be able to inspect findings before masking.
-- **Auditability:** replacements should be traceable in a local report.
-- **Configurable rules:** users should be able to define custom detection and replacement rules.
-- **Fail-safe behavior:** uncertain detections should be flagged for review instead of silently ignored.
-- **Optional mapping file:** consistent masking may require a local mapping file, which must be treated as sensitive.
+- **No sensitive logs:** original values should not be written to normal logs.
+- **Safe reports by default:** reports omit original values unless `--include-originals` is used.
+- **Dry-run mode:** users can inspect findings before writing masked output.
+- **Auditability:** replacements are traceable in a local report.
+- **Configurable rules:** users can define custom detection and replacement rules.
+- **Fail-safe behavior:** uncertain detections should be flagged for review rather than silently ignored.
+- **Sensitive mapping files:** consistent masking mappings must be treated as secrets.
 
 ---
 
-## Audit report concept
+## Current architecture
 
-The tool should create a local report such as:
-
-```json
-{
-  "source_file": "example.pdf",
-  "masked_file": "example_masked.pdf",
-  "replacements": [
-    {
-      "category": "person_name",
-      "original": "Ben Miller",
-      "masked": "John Winter",
-      "confidence": 0.98
-    },
-    {
-      "category": "date_of_birth",
-      "original": "1975/02/21",
-      "masked": "1976/03/20",
-      "confidence": 0.95
-    },
-    {
-      "category": "course_title",
-      "original": "Money Laundering",
-      "masked": "Healthy Nutrition",
-      "confidence": 0.91
-    }
-  ]
-}
+```text
+local-data-masker/
+├── README.md
+├── pyproject.toml
+├── profiles/
+│   └── default.yaml
+├── examples/
+│   └── sample_courses.csv
+├── src/
+│   └── local_data_masker/
+│       ├── cli.py
+│       ├── extractors/
+│       │   └── table_extractor.py
+│       ├── detectors/
+│       │   ├── regex_detector.py
+│       │   └── custom_rules.py
+│       ├── maskers/
+│       │   ├── faker_provider.py
+│       │   ├── mapping_store.py
+│       │   ├── replacer.py
+│       │   └── semantic_replacer.py
+│       └── exporters/
+│           ├── table_exporter.py
+│           └── report_exporter.py
+└── tests/
 ```
-
-For highly sensitive use cases, the report should optionally omit original values.
-
----
-
-## Early technical direction
-
-Possible Python libraries:
-
-- `pandas` / `openpyxl` for tables
-- `python-docx` for DOCX files
-- `PyMuPDF` or `pdfplumber` for PDFs
-- `Faker` for synthetic names, addresses, dates, emails, and phone numbers
-- `presidio-analyzer` and `presidio-anonymizer` as possible inspiration or optional backend
-- local NLP models for named entity recognition
-- local LLM or rule-based semantic replacement for content-specific terms
-- `typer` or `click` for the CLI
-- `pytest` for testing
-
-The exact stack is still open and should be validated with small prototypes.
 
 ---
 
 ## Roadmap
 
-### Phase 1: Structured data prototype
+### Phase 1: Structured data masking
 
 - Read CSV and Excel files
-- Detect names, emails, phone numbers, IDs, and dates
+- Detect names, emails, phone numbers, IDs, IBANs, and dates
 - Replace values with fake data
 - Export masked CSV/XLSX files
-- Generate JSON audit report
+- Generate JSON audit reports
 
-### Phase 2: Custom replacement profiles
+### Phase 2: Profile-based semantic masking
 
 - Add YAML-based replacement rules
 - Support project-specific masking categories
-- Add consistent replacement via local mapping store
+- Add semantic replacements for course titles, project names, companies, departments, and products
+- Make reports safer by default
 
-### Phase 3: PDF text extraction
+### Phase 3: Coherent entity masking
+
+- Keep fake names and generated emails aligned
+- Treat related fields as one entity where possible
+- Improve birthdate masking strategies
+
+### Phase 4: PDF text extraction
 
 - Extract text from normal PDFs
 - Detect sensitive values in extracted text
 - Replace values in text output
 - Evaluate PDF reconstruction options
-
-### Phase 4: Semantic masking
-
-- Detect course titles, project names, company names, and sensitive topics
-- Replace them with harmless but realistic alternatives
-- Preserve document coherence across multiple pages and files
 
 ### Phase 5: Review workflow
 
@@ -408,18 +268,11 @@ The exact stack is still open and should be validated with small prototypes.
 - Detect personal data in OCR text
 - Explore visual redaction overlays or PDF layer replacement
 
-### Phase 7: User interface
-
-- Add a simple local web interface or desktop UI
-- Support drag-and-drop input
-- Show findings before masking
-- Export masked documents and reports
-
 ---
 
-## Non-goals for the first version
+## Non-goals for the first versions
 
-The first version will not attempt to:
+The first versions will not attempt to:
 
 - guarantee legal anonymization,
 - process every complex PDF layout perfectly,
@@ -429,32 +282,20 @@ The first version will not attempt to:
 
 ---
 
-## Example use cases
+## Terminology
 
-- preparing masked demo data,
-- creating realistic training examples,
-- cleaning customer exports before internal testing,
-- replacing personal data in PDFs before sharing,
-- generating safer portfolio screenshots or documentation,
-- converting sensitive real-world examples into harmless fictional examples.
+This project focuses on **data masking**.
 
----
+Data masking means that real values are replaced by artificial values. The output should look realistic, but it should no longer reveal the original person, customer, course, organization, or business case.
 
-## Suggested repository name
+This is different from simple anonymization or redaction:
 
-```text
-local-data-masker
-```
+- **Redaction** removes or hides information.
+- **Pseudonymization** replaces data but may keep a reversible mapping.
+- **Anonymization** aims to make re-identification impossible.
+- **Masking** replaces sensitive values with plausible fake values while preserving usefulness.
 
-Alternative names:
-
-```text
-semantic-data-masker
-pii-data-masker
-document-data-masker
-local-pii-masker
-safe-data-masker
-```
+This project should be treated as a **local masking and pseudonymization tool**, not as a legal guarantee of full anonymization.
 
 ---
 
