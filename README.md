@@ -3,7 +3,7 @@
 A pluggable pre-processing layer that turns sensitive real-world data into masked, realistic, and useful datasets before the actual AI, analytics, RAG, or cloud-processing workflow begins.
 
 > **Status:** Phase 3 started  
-> **Current focus:** structured data masking, semantic replacement profiles, coherent row-level entity masking, an importable pre-processing pipeline API, and adaptive masking-plan generation.
+> **Current focus:** structured data masking, semantic replacement profiles, coherent row-level entity masking, an importable pre-processing pipeline API, adaptive masking-plan generation, and PDF extraction concepts inspired by the AMVU Dashboard project.
 
 ---
 
@@ -176,6 +176,102 @@ unknown sensitive structure
 A local LLM should be used to interpret unknown structures and suggest a masking plan. The full dataset should then be handled by deterministic code, not by the LLM.
 
 Detailed concept: [`docs/adaptive-masking-plan.md`](docs/adaptive-masking-plan.md)
+
+---
+
+## PDF extraction lessons from AMVU Dashboard
+
+The related `amvu-dashboard` project already demonstrates a useful pattern for turning many operational PDFs into structured Excel output.
+
+The most relevant lessons for `local-data-masker` are:
+
+### 1. Start with text and table extraction
+
+The AMVU script uses `pdfplumber` to extract both full-page text and tables from `Untersuchungskartei.pdf` files. This is a good first model for a generic PDF extraction layer.
+
+For `local-data-masker`, the first PDF milestone should not try to reconstruct a masked PDF immediately. A safer first step is:
+
+```text
+PDF -> extracted text + extracted tables -> findings report / masking plan
+```
+
+### 2. Separate extraction from interpretation
+
+The AMVU project separates low-level extraction from domain interpretation:
+
+```text
+read PDF
+-> extract text and tables
+-> parse header fields
+-> identify relevant tables
+-> classify records
+-> export structured workbook
+```
+
+For this project, the same pattern should become:
+
+```text
+read PDF
+-> extract text and tables
+-> profile structure
+-> infer masking plan
+-> apply deterministic masking
+-> validate masked output
+```
+
+### 3. Handle multi-page tables carefully
+
+Operational PDFs often split tables across pages. The AMVU parser handles continuation tables by tracking whether the parser is currently inside an examination table. This is important because a table may continue on the next page without repeating the header.
+
+For `local-data-masker`, the PDF extractor should therefore preserve:
+
+- page order,
+- table order,
+- table headers when available,
+- continuation-table candidates,
+- text blocks that are near tables.
+
+### 4. Produce warnings instead of silently skipping content
+
+The AMVU project distinguishes between missing PDFs, unreadable PDFs, empty records, non-critical records, and technical issues.
+
+For masking, this is essential. A masking tool should not silently ignore parts of a document. It should create warnings such as:
+
+- `missing_file`,
+- `unreadable_pdf`,
+- `no_text_extracted`,
+- `table_extraction_failed`,
+- `possible_scanned_pdf`,
+- `review_required`,
+- `unclassified_sensitive_candidate`.
+
+### 5. Use parallel processing for large batches
+
+The AMVU project processes many PDF folders in parallel and supports a serial mode for debugging. This pattern is useful for large-scale masking as well.
+
+Recommended future design:
+
+```text
+--workers auto   # all available CPU cores
+--workers 1      # deterministic debugging mode
+```
+
+### 6. Keep domain-specific logic out of the generic masker
+
+The AMVU extraction rules are specific to occupational-health examination records. They should not be copied directly into `local-data-masker`.
+
+The reusable idea is the extraction architecture:
+
+```text
+folder-based batch input
++ pdfplumber text/table extraction
++ structure profiling
++ warnings
++ parallel processing
++ structured output
+```
+
+The masking project should keep the PDF layer generic and let profiles or generated masking plans handle domain-specific interpretation.
 
 ---
 
@@ -401,7 +497,16 @@ local-data-masker/
 - Add `plan`, `apply`, and `preprocess --auto-plan` command flow
 - Add confidence scores and review-required flags
 
-### Phase 5: Large dataset workflows
+### Phase 5: Generic PDF extraction and profiling
+
+- Add a `pdf_extractor.py` based on the AMVU extraction lessons
+- Extract text and tables with `pdfplumber`
+- Preserve page order, table order, and continuation-table candidates
+- Generate extraction warnings for unreadable/scanned/problematic PDFs
+- Produce PDF structure profiles for masking-plan inference
+- Add serial and parallel batch-processing modes
+
+### Phase 6: Large dataset workflows
 
 - Add dataset manifests
 - Add chunked CSV processing
@@ -409,21 +514,21 @@ local-data-masker/
 - Add resumable batch jobs
 - Add validation summaries for masked datasets
 
-### Phase 6: PDF and document extraction
+### Phase 7: PDF and document masking
 
-- Extract text from normal PDFs
-- Detect sensitive values in extracted text
+- Detect sensitive values in extracted PDF text and tables
 - Replace values in text output
 - Evaluate PDF reconstruction options
+- Evaluate PDF overlay/redaction options carefully, ensuring hidden text is not leaked
 
-### Phase 7: Cloud AI export workflows
+### Phase 8: Cloud AI export workflows
 
 - Add masked-only export adapters
 - Prepare datasets for embedding/RAG pipelines
 - Add vector-ingestion export formats
 - Add LLM evaluation dataset formats
 
-### Phase 8: Review workflow and UI
+### Phase 9: Review workflow and UI
 
 - Add a review report
 - Mark uncertain detections
@@ -431,7 +536,7 @@ local-data-masker/
 - Add manual approval before export
 - Add a simple local review UI
 
-### Phase 9: OCR and visual documents
+### Phase 10: OCR and visual documents
 
 - Add OCR support for scanned PDFs and images
 - Detect personal data in OCR text
