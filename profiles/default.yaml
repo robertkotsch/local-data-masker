@@ -1,0 +1,77 @@
+# Default semantic masking profile for local-data-masker.
+#
+# Keep this file free of real customer or personal data. It should contain only
+# generic examples and safe fictional replacement pools.
+
+custom_replacements:
+  Money Laundering: Healthy Nutrition
+  Anti-Corruption and Money Laundering Prevention: Workplace Health and Healthy Nutrition
+  Anti-Corruption: Workplace Safety
+  Internal Audit: Learning Review
+  Confidential Supplier Review: Learning Provider Review
+
+column_categories:
+  course_title:
+    columns:
+      - course
+      - course_title
+      - training
+      - training_name
+      - module_title
+    replacements:
+      - Healthy Nutrition
+      - Workplace Safety Basics
+      - Digital Collaboration
+      - Ergonomics at Work
+      - Effective Communication
+      - Data Protection Basics
+
+  project_name:
+    columns:
+      - project
+      - project_name
+      - initiative
+    replacements:
+      - Project Silverline
+      - Project Northstar
+      - Project Blue Harbor
+      - Project Clearview
+
+  company:
+    columns:
+      - company
+      - company_name
+      - customer
+      - customer_name
+      - supplier
+      - supplier_name
+      - organization
+      - organisation
+    replacements:
+      - Example Industries GmbH
+      - Northwind Learning GmbH
+      - Blue Harbor Solutions AG
+      - Clearview Services GmbH
+
+  department:
+    columns:
+      - department
+      - dept
+      - business_unit
+    replacements:
+      - Learning & Development
+      - People Operations
+      - Digital Services
+      - Customer Enablement
+
+  product_name:
+    columns:
+      - product
+      - product_name
+      - application
+      - app_name
+    replacements:
+      - Demo Portal
+      - Learning Hub
+      - Service Companion
+      - Knowledge Center
