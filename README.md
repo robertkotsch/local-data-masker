@@ -2,8 +2,8 @@
 
 A local-first data masking tool for replacing sensitive real-world data with plausible fake data in CSV/Excel files today, with PDFs and other document sources planned next.
 
-> **Status:** Phase 2 started  
-> **Current focus:** structured data masking plus configurable semantic replacement profiles.
+> **Status:** Phase 3 started  
+> **Current focus:** structured data masking, semantic replacement profiles, and coherent row-level entity masking.
 
 ---
 
@@ -29,7 +29,7 @@ The goal is not simply to redact data with black bars. The goal is to create **s
 
 ## What works now
 
-Phase 1/early Phase 2 currently supports:
+Phase 1 to early Phase 3 currently supports:
 
 - CSV files
 - Excel files (`.xlsx`, `.xls`)
@@ -43,6 +43,10 @@ Phase 1/early Phase 2 currently supports:
   - generic dates
   - dates of birth
   - ID-style columns
+- coherent row-level person masking:
+  - fake names and fake emails are generated as one identity
+  - repeated email/name identities are reused within one run
+  - with `--consistent`, coherent identities can be reused through the mapping file
 - profile-based semantic masking for categories such as:
   - course titles
   - training names
@@ -97,6 +101,46 @@ Run the tests:
 ```bash
 pytest
 ```
+
+---
+
+## Coherent entity masking
+
+The masker now treats related person fields in the same row as one synthetic identity.
+
+Example input:
+
+```text
+name,email
+Ben Miller,ben.miller@example.com
+```
+
+Possible masked output:
+
+```text
+name,email
+John Winter,john.winter@example.test
+```
+
+This avoids incoherent output such as:
+
+```text
+John Winter,laura.smith@example.test
+```
+
+Identity matching currently uses this priority:
+
+1. email address
+2. person name
+3. ID-style value as a fallback
+
+That means repeated rows with the same detected email receive the same fake name and fake email within one run. When `--consistent` and `--mapping` are used, the coherent fake name and fake email are stored in the local mapping file and can be reused across runs.
+
+Current scope:
+
+- supported: `name` + `email` coherence
+- partially supported: repeated identity reuse by email/name
+- not yet supported: full document-level identity graphs or matching people across unstructured PDF text
 
 ---
 
@@ -157,7 +201,7 @@ This is important because the project is not limited to personal data. It also m
 
 ### One-off masking
 
-Default behavior. Each detected value receives a generated fake value.
+Default behavior. Each detected value receives a generated fake value. Coherent person identities are still reused within the current run.
 
 ```bash
 local-data-masker mask input.csv --output output.csv
@@ -165,7 +209,7 @@ local-data-masker mask input.csv --output output.csv
 
 ### Consistent masking
 
-The same original value is always replaced with the same fake value within the same mapping file.
+The same original value is always replaced with the same fake value within the same mapping file. Coherent fake person identities are stored as paired name/email mappings.
 
 ```bash
 local-data-masker mask input.csv \
@@ -213,6 +257,7 @@ local-data-masker/
 │       │   ├── regex_detector.py
 │       │   └── custom_rules.py
 │       ├── maskers/
+│       │   ├── entity_masker.py
 │       │   ├── faker_provider.py
 │       │   ├── mapping_store.py
 │       │   ├── replacer.py
@@ -245,8 +290,9 @@ local-data-masker/
 ### Phase 3: Coherent entity masking
 
 - Keep fake names and generated emails aligned
-- Treat related fields as one entity where possible
-- Improve birthdate masking strategies
+- Reuse the same fake person identity for repeated email/name records
+- Persist coherent fake identities when `--consistent` and `--mapping` are used
+- Next: align person-specific IDs more explicitly with the generated entity
 
 ### Phase 4: PDF text extraction
 
