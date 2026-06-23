@@ -1,9 +1,9 @@
 # Local Data Masker
 
-A local-first data masking tool for replacing sensitive real-world data with plausible fake data in CSV/Excel files today, with PDFs and other document sources planned next.
+A local safety gateway for turning sensitive real-world data into masked, realistic, and useful datasets for large-scale analytics, cloud AI experiments, RAG pipelines, demos, and test systems.
 
 > **Status:** Phase 3 started  
-> **Current focus:** structured data masking, semantic replacement profiles, and coherent row-level entity masking.
+> **Current focus:** structured data masking, semantic replacement profiles, coherent row-level entity masking, and cloud-ready masked dataset workflows.
 
 ---
 
@@ -11,7 +11,15 @@ A local-first data masking tool for replacing sensitive real-world data with pla
 
 Sensitive data is often not stored neatly in databases. It may appear in PDFs, exported reports, forms, learning documents, spreadsheets, screenshots, or mixed text sources.
 
-This project aims to provide a local tool that extracts sensitive information from supported sources and replaces it with believable fake data while keeping the result readable and useful.
+The long-term goal of this project is to make it possible to experiment with huge datasets and cloud-based AI **without exposing raw sensitive data**.
+
+The local tool acts as a safety gateway:
+
+```text
+raw sensitive data -> local masking + validation -> masked dataset -> cloud AI / analytics / RAG experiments
+```
+
+Raw data should stay local. Masked and validated data can then be used for experiments with LLMs, embeddings, vector databases, analytics workflows, dashboards, and prototype applications.
 
 Examples:
 
@@ -23,7 +31,9 @@ Examples:
 | `ben.miller@example.com` | `john.winter@example.test` |
 | `Employee ID: 481927` | `Employee ID: 735204` |
 
-The goal is not simply to redact data with black bars. The goal is to create **safe, realistic substitute data** for demos, testing, documentation, e-learning examples, portfolio screenshots, and internal prototypes.
+The goal is not simply to redact data with black bars. The goal is to create **safe, realistic substitute data** that still works for testing, training, analytics, RAG, cloud AI evaluation, portfolio screenshots, and internal prototypes.
+
+See also: [`docs/cloud-ai-workflow.md`](docs/cloud-ai-workflow.md)
 
 ---
 
@@ -144,6 +154,20 @@ Current scope:
 
 ---
 
+## Cloud AI workflow
+
+The project is designed around a three-zone model:
+
+1. **Raw data zone** — original sensitive files stay local.
+2. **Masking and validation zone** — local extraction, detection, masking, and reporting.
+3. **Experimentation zone** — masked datasets can be used for cloud AI, analytics, RAG, vector databases, demos, and test systems.
+
+This means the project is **local-first at the safety boundary**, but the masked output is intended to be cloud-ready.
+
+Detailed concept: [`docs/cloud-ai-workflow.md`](docs/cloud-ai-workflow.md)
+
+---
+
 ## Custom masking profiles
 
 Profiles are YAML files that define semantic replacements without changing Python code.
@@ -226,7 +250,9 @@ local-data-masker mask input.csv \
 
 This project follows these principles:
 
-- **Local-first:** no cloud upload and no external API calls by default.
+- **Local-first safety boundary:** raw sensitive data is processed locally before anything can be used elsewhere.
+- **Cloud-ready masked output:** masked datasets should be useful for cloud AI and analytics experiments.
+- **No raw cloud upload:** raw sensitive inputs should not be uploaded to cloud AI services.
 - **No telemetry:** the tool should not collect usage data.
 - **No sensitive logs:** original values should not be written to normal logs.
 - **Safe reports by default:** reports omit original values unless `--include-originals` is used.
@@ -244,6 +270,8 @@ This project follows these principles:
 local-data-masker/
 ├── README.md
 ├── pyproject.toml
+├── docs/
+│   └── cloud-ai-workflow.md
 ├── profiles/
 │   └── default.yaml
 ├── examples/
@@ -294,21 +322,37 @@ local-data-masker/
 - Persist coherent fake identities when `--consistent` and `--mapping` are used
 - Next: align person-specific IDs more explicitly with the generated entity
 
-### Phase 4: PDF text extraction
+### Phase 4: Large dataset workflows
+
+- Add dataset manifests
+- Add chunked CSV processing
+- Add Parquet support
+- Add resumable batch jobs
+- Add validation summaries for masked datasets
+
+### Phase 5: PDF and document extraction
 
 - Extract text from normal PDFs
 - Detect sensitive values in extracted text
 - Replace values in text output
 - Evaluate PDF reconstruction options
 
-### Phase 5: Review workflow
+### Phase 6: Cloud AI export workflows
+
+- Add masked-only export adapters
+- Prepare datasets for embedding/RAG pipelines
+- Add vector-ingestion export formats
+- Add LLM evaluation dataset formats
+
+### Phase 7: Review workflow and UI
 
 - Add a review report
 - Mark uncertain detections
 - Add allowlist and blocklist support
 - Add manual approval before export
+- Add a simple local review UI
 
-### Phase 6: OCR and visual documents
+### Phase 8: OCR and visual documents
 
 - Add OCR support for scanned PDFs and images
 - Detect personal data in OCR text
@@ -323,7 +367,7 @@ The first versions will not attempt to:
 - guarantee legal anonymization,
 - process every complex PDF layout perfectly,
 - replace professional privacy review,
-- upload documents to cloud-based AI services,
+- upload raw sensitive data to cloud-based AI services,
 - hide sensitive data by merely drawing black boxes over text without removing the underlying content.
 
 ---
