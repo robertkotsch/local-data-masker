@@ -3,7 +3,7 @@
 A pluggable pre-processing layer that turns sensitive real-world data into masked, realistic, and useful datasets before the actual AI, analytics, RAG, or cloud-processing workflow begins.
 
 > **Status:** Phase 3 started  
-> **Current focus:** structured data masking, semantic replacement profiles, coherent row-level entity masking, and an importable pre-processing pipeline API.
+> **Current focus:** structured data masking, semantic replacement profiles, coherent row-level entity masking, an importable pre-processing pipeline API, and adaptive masking-plan generation.
 
 ---
 
@@ -21,6 +21,16 @@ raw sensitive data -> local-data-masker -> masked dataset -> actual processing p
 
 The downstream project should only receive masked output. That downstream project might be a cloud LLM workflow, RAG pipeline, vector database ingestion process, analytics job, dashboard generator, or another AI/data-processing tool.
 
+For unknown data structures, the intended future workflow is:
+
+```text
+sensitive data
+-> local profiling and sampling
+-> local LLM infers a masking plan
+-> deterministic algorithm masks the full dataset
+-> masked export preserves the structure expected by downstream processing
+```
+
 Examples:
 
 | Original | Masked |
@@ -37,6 +47,7 @@ See also:
 
 - [`docs/cloud-ai-workflow.md`](docs/cloud-ai-workflow.md)
 - [`docs/integration-as-preprocessor.md`](docs/integration-as-preprocessor.md)
+- [`docs/adaptive-masking-plan.md`](docs/adaptive-masking-plan.md)
 
 ---
 
@@ -146,6 +157,25 @@ masked_files = [result.masked_file for result in results if result.masked_file]
 The downstream project should consume `masked_files`, not the raw input files.
 
 Detailed guide: [`docs/integration-as-preprocessor.md`](docs/integration-as-preprocessor.md)
+
+---
+
+## Adaptive masking plan workflow
+
+The future adaptive workflow separates inference from execution:
+
+```text
+unknown sensitive structure
+-> infer structure locally
+-> generate explicit masking plan
+-> optionally review plan
+-> deterministically mask full dataset
+-> export masked data in the same structure expected by downstream systems
+```
+
+A local LLM should be used to interpret unknown structures and suggest a masking plan. The full dataset should then be handled by deterministic code, not by the LLM.
+
+Detailed concept: [`docs/adaptive-masking-plan.md`](docs/adaptive-masking-plan.md)
 
 ---
 
@@ -307,6 +337,7 @@ local-data-masker/
 ├── README.md
 ├── pyproject.toml
 ├── docs/
+│   ├── adaptive-masking-plan.md
 │   ├── cloud-ai-workflow.md
 │   └── integration-as-preprocessor.md
 ├── profiles/
@@ -362,7 +393,15 @@ local-data-masker/
 - Provide an importable `preprocess()` API for other projects
 - Next: align person-specific IDs more explicitly with the generated entity
 
-### Phase 4: Large dataset workflows
+### Phase 4: Adaptive masking-plan generation
+
+- Add data profiling and representative sampling
+- Add local LLM-assisted masking-plan inference
+- Add editable YAML/JSON masking plans
+- Add `plan`, `apply`, and `preprocess --auto-plan` command flow
+- Add confidence scores and review-required flags
+
+### Phase 5: Large dataset workflows
 
 - Add dataset manifests
 - Add chunked CSV processing
@@ -370,21 +409,21 @@ local-data-masker/
 - Add resumable batch jobs
 - Add validation summaries for masked datasets
 
-### Phase 5: PDF and document extraction
+### Phase 6: PDF and document extraction
 
 - Extract text from normal PDFs
 - Detect sensitive values in extracted text
 - Replace values in text output
 - Evaluate PDF reconstruction options
 
-### Phase 6: Cloud AI export workflows
+### Phase 7: Cloud AI export workflows
 
 - Add masked-only export adapters
 - Prepare datasets for embedding/RAG pipelines
 - Add vector-ingestion export formats
 - Add LLM evaluation dataset formats
 
-### Phase 7: Review workflow and UI
+### Phase 8: Review workflow and UI
 
 - Add a review report
 - Mark uncertain detections
@@ -392,7 +431,7 @@ local-data-masker/
 - Add manual approval before export
 - Add a simple local review UI
 
-### Phase 8: OCR and visual documents
+### Phase 9: OCR and visual documents
 
 - Add OCR support for scanned PDFs and images
 - Detect personal data in OCR text
