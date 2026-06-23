@@ -22,11 +22,13 @@ from local_data_masker.detectors.regex_detector import (
     PHONE_RE,
     ColumnClassification,
 )
+from local_data_masker.maskers.entity_masker import EntityMasker
 from local_data_masker.maskers.faker_provider import FakerProvider
 from local_data_masker.maskers.mapping_store import MappingStore
 from local_data_masker.maskers.semantic_replacer import generate_semantic_replacement
 
 PLACEHOLDER_VALUES = {"", "-", "--", "n/a", "na", "none", "null", "nan"}
+ENTITY_CATEGORIES = {CATEGORY_NAME, CATEGORY_EMAIL}
 SEMANTIC_CATEGORIES = {
     "course_title",
     "training_name",
@@ -69,16 +71,17 @@ def mask_dataframe(
     active_profile = profile or MaskingProfile.empty()
 
     classified = {c.column: c for c in classifications if c.category is not None}
+    entity_masker = EntityMasker(faker_provider, mapping_store, consistent)
 
-    # Iterate over all cells, not only classified columns. This allows profile
-    # custom replacements to catch sensitive terms inside otherwise harmless
-    # columns such as notes or descriptions.
-    for column in df.columns:
-        column_name = str(column)
-        classification = classified.get(column_name)
+    # Iterate row-first so related identity fields in the same record can share
+    # one coherent fake entity, e.g. name + email.
+    for row_index, row in df.iterrows():
+        entity_context = entity_masker.context_for_row(row, classified)
 
-        for row_index, original in df[column].items():
-            original_str = str(original)
+        for column in df.columns:
+            column_name = str(column)
+            classification = classified.get(column_name)
+            original_str = str(row[column])
             if _is_placeholder(original_str):
                 continue
 
@@ -98,7 +101,10 @@ def mask_dataframe(
                 if not _should_mask_value(category, original_str):
                     continue
 
-                if consistent:
+                if entity_context is not None and category in ENTITY_CATEGORIES:
+                    fake_value = entity_context.replacement_for(category)
+
+                if fake_value is None and consistent:
                     fake_value = mapping_store.get(category, original_str)
 
                 if fake_value is None:
