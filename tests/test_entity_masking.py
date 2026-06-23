@@ -1,3 +1,6 @@
+import re
+import unicodedata
+
 import pandas as pd
 
 from local_data_masker.detectors.regex_detector import classify_dataframe
@@ -8,7 +11,15 @@ from local_data_masker.maskers.replacer import mask_dataframe
 
 def _expected_email_from_name(full_name: str) -> str:
     first_name, last_name = full_name.split()[0], full_name.split()[-1]
-    return f"{first_name.lower()}.{last_name.lower()}@example.test"
+    return f"{_slugify(first_name)}.{_slugify(last_name)}@example.test"
+
+
+def _slugify(value: str) -> str:
+    normalized = unicodedata.normalize("NFKD", value)
+    ascii_value = normalized.encode("ascii", "ignore").decode("ascii")
+    ascii_value = ascii_value.lower()
+    ascii_value = re.sub(r"[^a-z0-9]+", ".", ascii_value)
+    return ascii_value.strip(".")
 
 
 def test_name_and_email_are_masked_as_one_coherent_entity() -> None:
