@@ -28,4 +28,5 @@ def build_report(source_file: str, masked_file: str, replacements: list[Replacem
 
 
 def write_report(reports: list[dict], path: Path) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(reports, indent=2), encoding="utf-8")
