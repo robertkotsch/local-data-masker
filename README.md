@@ -1,9 +1,9 @@
 # Local Data Masker
 
-A local safety gateway for turning sensitive real-world data into masked, realistic, and useful datasets for large-scale analytics, cloud AI experiments, RAG pipelines, demos, and test systems.
+A pluggable pre-processing layer that turns sensitive real-world data into masked, realistic, and useful datasets before the actual AI, analytics, RAG, or cloud-processing workflow begins.
 
 > **Status:** Phase 3 started  
-> **Current focus:** structured data masking, semantic replacement profiles, coherent row-level entity masking, and cloud-ready masked dataset workflows.
+> **Current focus:** structured data masking, semantic replacement profiles, coherent row-level entity masking, and an importable pre-processing pipeline API.
 
 ---
 
@@ -13,13 +13,13 @@ Sensitive data is often not stored neatly in databases. It may appear in PDFs, e
 
 The long-term goal of this project is to make it possible to experiment with huge datasets and cloud-based AI **without exposing raw sensitive data**.
 
-The local tool acts as a safety gateway:
+The tool acts as a pre-processing safety layer:
 
 ```text
-raw sensitive data -> local masking + validation -> masked dataset -> cloud AI / analytics / RAG experiments
+raw sensitive data -> local-data-masker -> masked dataset -> actual processing project
 ```
 
-Raw data should stay local. Masked and validated data can then be used for experiments with LLMs, embeddings, vector databases, analytics workflows, dashboards, and prototype applications.
+The downstream project should only receive masked output. That downstream project might be a cloud LLM workflow, RAG pipeline, vector database ingestion process, analytics job, dashboard generator, or another AI/data-processing tool.
 
 Examples:
 
@@ -33,7 +33,10 @@ Examples:
 
 The goal is not simply to redact data with black bars. The goal is to create **safe, realistic substitute data** that still works for testing, training, analytics, RAG, cloud AI evaluation, portfolio screenshots, and internal prototypes.
 
-See also: [`docs/cloud-ai-workflow.md`](docs/cloud-ai-workflow.md)
+See also:
+
+- [`docs/cloud-ai-workflow.md`](docs/cloud-ai-workflow.md)
+- [`docs/integration-as-preprocessor.md`](docs/integration-as-preprocessor.md)
 
 ---
 
@@ -45,6 +48,7 @@ Phase 1 to early Phase 3 currently supports:
 - Excel files (`.xlsx`, `.xls`)
 - single files or folders of files
 - `mask` and `scan` CLI commands
+- importable Python pre-processing API via `local_data_masker.pipeline`
 - column-based detection for:
   - names
   - email addresses
@@ -111,6 +115,37 @@ Run the tests:
 ```bash
 pytest
 ```
+
+---
+
+## Use as a pre-processing API
+
+Other projects can call the masker before they start their own processing.
+
+```python
+from pathlib import Path
+
+from local_data_masker import PreprocessConfig, preprocess
+
+results = preprocess(
+    PreprocessConfig(
+        input_path=Path("data/raw"),
+        output_path=Path("data/masked"),
+        report_path=Path("data/reports/masking-report.json"),
+        profile_path=Path("profiles/default.yaml"),
+        mapping_path=Path("data/mappings/local.mapping.json"),
+        consistent=True,
+        omit_originals=True,
+        seed=42,
+    )
+)
+
+masked_files = [result.masked_file for result in results if result.masked_file]
+```
+
+The downstream project should consume `masked_files`, not the raw input files.
+
+Detailed guide: [`docs/integration-as-preprocessor.md`](docs/integration-as-preprocessor.md)
 
 ---
 
@@ -250,6 +285,7 @@ local-data-masker mask input.csv \
 
 This project follows these principles:
 
+- **Pre-processing boundary:** the masker runs before the real data processing starts.
 - **Local-first safety boundary:** raw sensitive data is processed locally before anything can be used elsewhere.
 - **Cloud-ready masked output:** masked datasets should be useful for cloud AI and analytics experiments.
 - **No raw cloud upload:** raw sensitive inputs should not be uploaded to cloud AI services.
@@ -271,14 +307,17 @@ local-data-masker/
 ├── README.md
 ├── pyproject.toml
 ├── docs/
-│   └── cloud-ai-workflow.md
+│   ├── cloud-ai-workflow.md
+│   └── integration-as-preprocessor.md
 ├── profiles/
 │   └── default.yaml
 ├── examples/
 │   └── sample_courses.csv
 ├── src/
 │   └── local_data_masker/
+│       ├── __init__.py
 │       ├── cli.py
+│       ├── pipeline.py
 │       ├── extractors/
 │       │   └── table_extractor.py
 │       ├── detectors/
@@ -315,11 +354,12 @@ local-data-masker/
 - Add semantic replacements for course titles, project names, companies, departments, and products
 - Make reports safer by default
 
-### Phase 3: Coherent entity masking
+### Phase 3: Coherent entity masking and pre-processing API
 
 - Keep fake names and generated emails aligned
 - Reuse the same fake person identity for repeated email/name records
 - Persist coherent fake identities when `--consistent` and `--mapping` are used
+- Provide an importable `preprocess()` API for other projects
 - Next: align person-specific IDs more explicitly with the generated entity
 
 ### Phase 4: Large dataset workflows
