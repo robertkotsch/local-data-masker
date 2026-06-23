@@ -1,0 +1,4 @@
+name,email,date_of_birth,employee_id,course_title,company,notes
+Ben Miller,ben.miller@example.com,1975/02/21,EMP-481927,Money Laundering,Acme GmbH,Completed course Money Laundering with follow-up Internal Audit.
+Maria Schneider,maria.schneider@example.com,1981-07-14,EMP-239100,Anti-Corruption and Money Laundering Prevention,Example Supplier AG,Assigned to Confidential Supplier Review.
+Laura Winter,laura.winter@example.com,21/03/1990,EMP-873511,Data Protection Basics,Northwind GmbH,No sensitive custom topic here.
