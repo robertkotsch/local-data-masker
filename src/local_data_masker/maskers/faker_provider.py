@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import random
 import re
+import unicodedata
+from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from typing import Sequence
 
@@ -57,6 +59,23 @@ PRODUCT_NAMES = (
 )
 
 
+@dataclass(frozen=True)
+class FakePerson:
+    """Coherent fake person values used across related columns."""
+
+    first_name: str
+    last_name: str
+    full_name: str
+    email: str
+
+    @classmethod
+    def from_full_name_and_email(cls, full_name: str, email: str) -> "FakePerson":
+        parts = full_name.split()
+        first_name = parts[0] if parts else "John"
+        last_name = parts[-1] if len(parts) > 1 else "Doe"
+        return cls(first_name=first_name, last_name=last_name, full_name=full_name, email=email)
+
+
 class FakerProvider:
     """Wraps Faker to produce category-appropriate fake values."""
 
@@ -72,6 +91,14 @@ class FakerProvider:
             raise ValueError(f"No fake value generator for category: {category}")
         return generator(self._faker, original)
 
+    def generate_person(self) -> FakePerson:
+        """Generate one coherent fake person identity."""
+        first_name = self._faker.first_name()
+        last_name = self._faker.last_name()
+        full_name = f"{first_name} {last_name}"
+        email = _email_from_name(first_name, last_name)
+        return FakePerson(first_name=first_name, last_name=last_name, full_name=full_name, email=email)
+
     def choice(self, candidates: Sequence[str]) -> str:
         """Return a reproducible random choice when a seed is configured."""
         if not candidates:
@@ -80,13 +107,29 @@ class FakerProvider:
 
 
 def _generate_name(faker: Faker, original: str) -> str:
-    return faker.name()
+    first_name = faker.first_name()
+    last_name = faker.last_name()
+    return f"{first_name} {last_name}"
 
 
 def _generate_email(faker: Faker, original: str) -> str:
-    first = faker.first_name().lower()
-    last = faker.last_name().lower()
+    first = faker.first_name()
+    last = faker.last_name()
+    return _email_from_name(first, last)
+
+
+def _email_from_name(first_name: str, last_name: str) -> str:
+    first = _slugify(first_name) or "john"
+    last = _slugify(last_name) or "doe"
     return f"{first}.{last}@example.test"
+
+
+def _slugify(value: str) -> str:
+    normalized = unicodedata.normalize("NFKD", value)
+    ascii_value = normalized.encode("ascii", "ignore").decode("ascii")
+    ascii_value = ascii_value.lower()
+    ascii_value = re.sub(r"[^a-z0-9]+", ".", ascii_value)
+    return ascii_value.strip(".")
 
 
 def _generate_phone(faker: Faker, original: str) -> str:
