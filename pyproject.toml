@@ -1,0 +1,31 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "local-data-masker"
+version = "0.1.0"
+description = "A local-first data masking tool for replacing sensitive data with plausible fake data."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "TBD" }
+dependencies = [
+    "pandas>=2.0",
+    "openpyxl>=3.1",
+    "Faker>=24.0",
+    "typer>=0.12",
+]
+
+[project.scripts]
+local-data-masker = "local_data_masker.cli:app"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/local_data_masker"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

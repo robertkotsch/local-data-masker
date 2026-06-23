@@ -2,8 +2,29 @@
 
 A local-first data masking tool for replacing sensitive real-world data with plausible fake data in PDFs, tables, and other document sources.
 
-> **Status:** early concept / prototype  
+> **Status:** Phase 1 (structured data prototype) implemented  
 > **Core idea:** turn real personal, organizational, and content-specific data into realistic but fictional alternatives without sending files to external services.
+
+---
+
+## Getting started
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e ".[dev]"
+
+# Mask a CSV/XLSX file or a folder of them
+local-data-masker mask examples/sample_input.csv --output masked.csv --report report.json
+
+# Detect findings without writing any output
+local-data-masker scan examples/sample_input.csv --report findings.json
+
+# Run the test suite
+pytest
+```
+
+Phase 1 currently detects and masks `name`, `email`, `phone`, `iban`, `date` / `date_of_birth`, and `id`-style columns in CSV and Excel files, based on column-name heuristics with a value-shape fallback for unlabeled columns. Unrecognized columns (e.g. `course_title`) are left untouched. Use `--consistent` together with `--mapping` to reuse the same fake value for repeated originals across runs.
 
 ---
 
