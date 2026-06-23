@@ -1,7 +1,35 @@
-.venv/
+# Python
 __pycache__/
-*.pyc
-*.egg-info/
+*.py[cod]
 .pytest_cache/
-dist/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+.venv/
+venv/
+
+# Build artifacts
 build/
+dist/
+*.egg-info/
+
+# Local data-masker outputs
+output/
+outputs/
+masked/
+reports/
+findings.json
+report.json
+preview.json
+
+# Sensitive mapping files
+*.mapping.json
+*mapping*.json
+mapping.json
+
+# Local input data used during manual testing
+input/
+inputs/
