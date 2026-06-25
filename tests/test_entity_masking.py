@@ -3,7 +3,8 @@ import unicodedata
 
 import pandas as pd
 
-from local_data_masker.detectors.regex_detector import classify_dataframe
+from local_data_masker.detectors.regex_detector import CATEGORY_NAME, classify_dataframe
+from local_data_masker.maskers.entity_masker import EntityMasker
 from local_data_masker.maskers.faker_provider import FakerProvider
 from local_data_masker.maskers.mapping_store import MappingStore
 from local_data_masker.maskers.replacer import mask_dataframe
@@ -123,3 +124,22 @@ def test_consistent_entity_mapping_reuses_fake_identity_across_calls() -> None:
 
     assert first_masked_df.loc[0, "name"] == second_masked_df.loc[0, "name"]
     assert first_masked_df.loc[0, "email"] == second_masked_df.loc[0, "email"]
+
+
+def test_primary_person_returns_first_cached_identity() -> None:
+    masker = EntityMasker(FakerProvider(seed=5), MappingStore(), consistent=False)
+    assert masker.primary_person() is None
+
+    first = masker.person_for_value(CATEGORY_NAME, "Amina Abaira")
+    masker.person_for_value(CATEGORY_NAME, "Sarra Abassi")
+
+    assert first is not None
+    assert masker.primary_person() == first
+
+
+def test_person_for_value_is_coherent_for_repeated_value() -> None:
+    masker = EntityMasker(FakerProvider(seed=5), MappingStore(), consistent=False)
+    a = masker.person_for_value(CATEGORY_NAME, "Amina Abaira")
+    b = masker.person_for_value(CATEGORY_NAME, "amina   abaira")
+    assert a == b
+    assert masker.person_for_value(CATEGORY_NAME, "") is None

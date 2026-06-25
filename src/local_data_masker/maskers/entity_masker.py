@@ -102,6 +102,30 @@ class EntityMasker:
             self._mapping_store.set(ENTITY_ID_CATEGORY, context.key, fake_id)
         return fake_id
 
+    def primary_person(self) -> FakePerson | None:
+        """Return the first fake identity created this run, or None."""
+        for context in self._cache.values():
+            return context.person
+        return None
+
+    def person_for_value(self, category: str, value: str) -> FakePerson | None:
+        """Return a coherent fake person for a raw identity string.
+
+        Reuses the run cache keyed by ``f"{category}:{normalized}"`` so the same
+        value (e.g. a name found only in a filename) maps to one fake identity,
+        and to the same identity the content used when the keys match.
+        """
+        normalized = _normalize_value(value)
+        if not normalized:
+            return None
+        key = f"{category}:{normalized}"
+        cached = self._cache.get(key)
+        if cached is not None:
+            return cached.person
+        person = self._load_or_create_person(key)
+        self._cache[key] = EntityContext(key=key, person=person)
+        return person
+
     def _load_or_create_person(self, key: str) -> FakePerson:
         if self._consistent:
             full_name = self._mapping_store.get(ENTITY_NAME_CATEGORY, key)
