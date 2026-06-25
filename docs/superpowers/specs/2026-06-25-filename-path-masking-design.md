@@ -76,8 +76,12 @@ component is rewritten, by filling its captured groups:
    so trusting the content's `FakePerson` is what keeps the path coherent with the
    file's contents.
 2. **date / id groups** (`dob`, `date`, `id`) — masked through the shared
-   `MappingStore` / faker, so they equal the content's masked values under
-   `--consistent`.
+   `MappingStore` / faker. The date token's separators are normalized to `.`
+   before masking, so it equals the content's masked DOB under `--consistent`
+   **when the in-file and filename dates share the same field ordering**
+   (day/month/year). A filename DOB is always a *valid* masked date; exact
+   cross-coherence with the in-file DOB is best-effort, not guaranteed (see the
+   plan's "Known limitation").
 3. **Opaque (last resort)** — if a matched component yields no usable masked value
    (e.g. an empty capture, or a name group with neither content identity nor a
    maskable captured value), the whole component becomes `record_{n:04d}` from
