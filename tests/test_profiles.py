@@ -105,6 +105,16 @@ filename_patterns:
     assert match.group("dob") == "14_12_1990"
 
 
+def test_report_includes_original_source_only_when_requested() -> None:
+    omitted = build_report("masked/rec.csv", "masked/rec.csv", [], omit_originals=True,
+                           original_source_file="Abaira_Amina_14_12_1990/rec.csv")
+    assert "original_source_file" not in omitted
+
+    shown = build_report("masked/rec.csv", "masked/rec.csv", [], omit_originals=False,
+                         original_source_file="Abaira_Amina_14_12_1990/rec.csv")
+    assert shown["original_source_file"] == "Abaira_Amina_14_12_1990/rec.csv"
+
+
 def test_malformed_filename_pattern_raises(tmp_path: Path) -> None:
     profile_path = tmp_path / "profile.yaml"
     profile_path.write_text(

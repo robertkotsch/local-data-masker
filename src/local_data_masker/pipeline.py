@@ -220,11 +220,13 @@ def _process_file(
             export_excel(masked_sheets, out_path)
 
     masked_for_report = str(out_path) if not config.dry_run else ""
+    folder_masked = config.mask_filenames and not config.input_path.is_file()
     report = build_report(
-        source_file=str(file_path),
+        source_file=masked_for_report if folder_masked and masked_for_report else str(file_path),
         masked_file=masked_for_report,
         replacements=all_replacements,
         omit_originals=config.omit_originals,
+        original_source_file=str(file_path) if folder_masked else None,
     )
 
     return PreprocessResult(

@@ -416,6 +416,13 @@ This is important because the project is not limited to personal data. It also m
 
 ## Masking modes
 
+### Filename masking
+
+When masking a folder, PII in file and folder names (e.g. `Abaira_Amina_14_12_1990`)
+is masked coherently with the identity inside each file. On by default; use
+`--keep-filenames` to preserve original names. Configure name structure with
+`filename_patterns` in the profile.
+
 ### One-off masking
 
 Default behavior. Each detected value receives a generated fake value. Coherent person identities are still reused within the current run.
