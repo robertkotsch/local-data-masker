@@ -8,8 +8,14 @@ from pathlib import Path
 from local_data_masker.maskers.replacer import Replacement
 
 
-def build_report(source_file: str, masked_file: str, replacements: list[Replacement], omit_originals: bool) -> dict:
-    return {
+def build_report(
+    source_file: str,
+    masked_file: str,
+    replacements: list[Replacement],
+    omit_originals: bool,
+    original_source_file: str | None = None,
+) -> dict:
+    report = {
         "source_file": source_file,
         "masked_file": masked_file,
         "replacements": [
@@ -25,6 +31,9 @@ def build_report(source_file: str, masked_file: str, replacements: list[Replacem
             for r in replacements
         ],
     }
+    if not omit_originals and original_source_file is not None:
+        report["original_source_file"] = original_source_file
+    return report
 
 
 def write_report(reports: list[dict], path: Path) -> None:

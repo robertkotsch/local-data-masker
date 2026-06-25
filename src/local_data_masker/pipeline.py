@@ -8,9 +8,11 @@ or other processing workflows.
 
 from __future__ import annotations
 
+import itertools
+import warnings
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Iterator
 
 import pandas as pd
 
@@ -19,8 +21,10 @@ from local_data_masker.detectors.regex_detector import ColumnClassification, cla
 from local_data_masker.exporters.report_exporter import build_report, write_report
 from local_data_masker.exporters.table_exporter import export_csv, export_excel
 from local_data_masker.extractors.table_extractor import is_supported, load_table
-from local_data_masker.maskers.faker_provider import FakerProvider
+from local_data_masker.maskers.entity_masker import EntityMasker
+from local_data_masker.maskers.faker_provider import FakePerson, FakerProvider
 from local_data_masker.maskers.mapping_store import MappingStore
+from local_data_masker.maskers.path_masker import mask_relative_path
 from local_data_masker.maskers.replacer import mask_dataframe
 
 ProgressCallback = Callable[["PreprocessResult"], None]
@@ -48,6 +52,7 @@ class PreprocessConfig:
     consistent: bool = False
     dry_run: bool = False
     omit_originals: bool = True
+    mask_filenames: bool = True
     seed: int | None = None
 
 
@@ -65,6 +70,10 @@ class ProfileNotFoundError(PreprocessError):
 
 class MappingFileWarning(UserWarning):
     """Warning category for sensitive mapping-file handling."""
+
+
+class FilenameMaskingWarning(UserWarning):
+    """Warned when filename masking is enabled but no filename_patterns are configured."""
 
 
 def preprocess(
@@ -100,12 +109,27 @@ def preprocess(
     masking_profile = load_profile(config.profile_path)
     _prepare_output_location(config)
 
+    if (
+        config.mask_filenames
+        and not config.input_path.is_file()
+        and not masking_profile.filename_patterns
+    ):
+        warnings.warn(
+            "mask_filenames is enabled but the profile defines no filename_patterns; "
+            "file and folder names will NOT be masked. Add filename_patterns to your "
+            "profile (e.g. profiles/health_records.yaml) or pass --keep-filenames.",
+            FilenameMaskingWarning,
+            stacklevel=2,
+        )
+
     mapping_store = MappingStore()
     if config.consistent and config.mapping_path is not None:
         mapping_store.load(config.mapping_path)
 
     faker_provider = FakerProvider(seed=config.seed)
     results: list[PreprocessResult] = []
+    used_paths: set[str] = set()
+    path_counter = itertools.count(1)
 
     for file_path in files:
         result = _process_file(
@@ -114,6 +138,8 @@ def preprocess(
             profile=masking_profile,
             faker_provider=faker_provider,
             mapping_store=mapping_store,
+            used_paths=used_paths,
+            path_counter=path_counter,
         )
         results.append(result)
         if progress_callback is not None:
@@ -176,10 +202,13 @@ def _process_file(
     profile: MaskingProfile,
     faker_provider: FakerProvider,
     mapping_store: MappingStore,
+    used_paths: set[str],
+    path_counter: Iterator[int],
 ) -> PreprocessResult:
     sheets = load_table(file_path)
     masked_sheets = {}
     all_replacements = []
+    entity_masker = EntityMasker(faker_provider, mapping_store, config.consistent)
 
     for sheet_name, df in sheets.items():
         classifications = classify_with_profile(df, profile)
@@ -191,11 +220,16 @@ def _process_file(
             config.consistent,
             mapping_store,
             profile=profile,
+            entity_masker=entity_masker,
         )
         masked_sheets[sheet_name] = masked_df
         all_replacements.extend(replacements)
 
-    out_path = _resolve_output_path(config, file_path)
+    primary_identity = entity_masker.primary_person()
+    out_path = _resolve_output_path(
+        config, file_path, profile, primary_identity, faker_provider,
+        mapping_store, entity_masker, used_paths, path_counter,
+    )
 
     if not config.dry_run:
         if file_path.suffix.lower() == ".csv":
@@ -203,25 +237,48 @@ def _process_file(
         else:
             export_excel(masked_sheets, out_path)
 
+    masked_for_report = str(out_path) if not config.dry_run else ""
+    folder_masked = config.mask_filenames and not config.input_path.is_file()
     report = build_report(
-        source_file=str(file_path),
-        masked_file=str(out_path) if not config.dry_run else "",
+        source_file=str(out_path) if folder_masked else str(file_path),
+        masked_file=masked_for_report,
         replacements=all_replacements,
         omit_originals=config.omit_originals,
+        original_source_file=str(file_path) if folder_masked else None,
     )
 
     return PreprocessResult(
         source_file=str(file_path),
-        masked_file=str(out_path) if not config.dry_run else "",
+        masked_file=masked_for_report,
         replacements_count=len(all_replacements),
         report=report,
     )
 
 
-def _resolve_output_path(config: PreprocessConfig, file_path: Path) -> Path:
+def _resolve_output_path(
+    config: PreprocessConfig,
+    file_path: Path,
+    profile: MaskingProfile,
+    primary_identity: FakePerson | None,
+    faker_provider: FakerProvider,
+    mapping_store: MappingStore,
+    entity_masker: EntityMasker,
+    used_paths: set[str],
+    path_counter: Iterator[int],
+) -> Path:
     if config.input_path.is_file():
         return config.output_path
 
-    out_path = config.output_path / file_path.relative_to(config.input_path)
+    relative = file_path.relative_to(config.input_path)
+    if config.mask_filenames:
+        masked_relative = mask_relative_path(
+            relative, primary_identity, profile, entity_masker, faker_provider,
+            mapping_store, config.consistent, used_paths, path_counter,
+        )
+        if config.consistent:
+            mapping_store.set("path", str(relative), str(masked_relative))
+        relative = masked_relative
+
+    out_path = config.output_path / relative
     out_path.parent.mkdir(parents=True, exist_ok=True)
     return out_path

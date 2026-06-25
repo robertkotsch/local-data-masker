@@ -39,3 +39,8 @@ column_categories:
       - date_of_birth
       - geburtsdatum
       - geb
+
+# Folder names in occupational-health exports encode Last_First_DD_MM_YYYY.
+# Masking renames them coherently with the masked patient identity.
+filename_patterns:
+  - "(?P<name_last>[^_/]+)_(?P<name_first>[^_/]+)_(?P<dob>\\d{2}_\\d{2}_\\d{4})"

@@ -62,6 +62,8 @@ Value-shape fallback checks dates **before** phones (a date-shaped string can al
 
 **Third-party persons:** columns naming a non-subject person (examiner/doctor — see `THIRD_PARTY_PERSON_KEYWORDS` and `is_third_party_person_column`) are detected as `CATEGORY_NAME` but are deliberately excluded from the row's identity key and never receive the patient's coherent fake identity (they get their own independent/consistent fake name). This is how a record with two people in one row (e.g. patient + examining doctor) avoids collapsing both into one fake person.
 
+- `maskers/path_masker.py` masks PII in output paths (folder mode), driven by the profile's `filename_patterns`; names are filled content-first from the file's primary fake identity. Toggle with `PreprocessConfig.mask_filenames` / `--keep-filenames`.
+
 ### Profiles (custom_rules.py + profiles/default.yaml)
 
 A `MaskingProfile` is loaded from YAML with two sections: `custom_replacements` (exact/substring text swaps) and `column_categories` (maps column-name hints → semantic category + replacement pool). Profile YAML must not contain real data. Semantic replacement pools in the profile take precedence over Faker fallbacks (`semantic_replacer.generate_semantic_replacement`).

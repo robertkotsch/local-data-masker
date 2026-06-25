@@ -86,3 +86,15 @@ def test_consistent_masking_with_mapping_file_persists_across_runs(tmp_path):
         assert result.exit_code == 0, result.output
 
     assert output_csv_1.read_text() == output_csv_2.read_text()
+
+
+def test_mask_accepts_keep_filenames_flag(tmp_path):
+    input_path = tmp_path / "raw.csv"
+    output_path = tmp_path / "out.csv"
+    input_path.write_text("name\nBen Miller\n", encoding="utf-8")
+
+    result = runner.invoke(
+        app, ["mask", str(input_path), "--output", str(output_path), "--keep-filenames", "--seed", "1"]
+    )
+    assert result.exit_code == 0
+    assert output_path.exists()

@@ -66,13 +66,15 @@ def mask_dataframe(
     consistent: bool,
     mapping_store: MappingStore,
     profile: MaskingProfile | None = None,
+    entity_masker: EntityMasker | None = None,
 ) -> tuple[pd.DataFrame, list[Replacement]]:
     masked_df = df.copy()
     replacements: list[Replacement] = []
     active_profile = profile or MaskingProfile.empty()
 
     classified = {c.column: c for c in classifications if c.category is not None}
-    entity_masker = EntityMasker(faker_provider, mapping_store, consistent)
+    if entity_masker is None:
+        entity_masker = EntityMasker(faker_provider, mapping_store, consistent)
 
     # Iterate row-first so related identity fields in the same record can share
     # one coherent fake entity, e.g. name + email.

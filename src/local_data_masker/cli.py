@@ -35,6 +35,11 @@ def mask(
         "--omit-originals/--include-originals",
         help="Exclude/include original values in reports. Defaults to omitting originals for safety.",
     ),
+    mask_filenames: bool = typer.Option(
+        True,
+        "--mask-filenames/--keep-filenames",
+        help="Mask PII in output file/folder names (folder input only). On by default.",
+    ),
     seed: int | None = typer.Option(None, "--seed", help="Random seed for reproducible fake values."),
 ) -> None:
     """Mask sensitive values in CSV/Excel files."""
@@ -53,6 +58,7 @@ def mask(
         consistent=consistent,
         dry_run=dry_run,
         omit_originals=omit_originals,
+        mask_filenames=mask_filenames,
         seed=seed,
     )
 
@@ -85,6 +91,7 @@ def scan(
         profile_path=profile,
         dry_run=True,
         omit_originals=omit_originals,
+        mask_filenames=True,
     )
 
     try:

@@ -1,6 +1,7 @@
 import pandas as pd
 
 from local_data_masker.detectors.regex_detector import classify_dataframe
+from local_data_masker.maskers.entity_masker import EntityMasker
 from local_data_masker.maskers.faker_provider import FakerProvider
 from local_data_masker.maskers.mapping_store import MappingStore
 from local_data_masker.maskers.replacer import mask_dataframe
@@ -85,3 +86,18 @@ def test_replacements_record_original_and_masked_values():
     assert len(replacements) == 1
     assert replacements[0].original == "ben.miller@example.com"
     assert replacements[0].category == "email"
+
+
+def test_shared_entity_masker_exposes_primary_person_after_masking():
+    df = pd.DataFrame({"name": ["Ben Miller"], "email": ["ben.miller@example.com"]})
+    classifications = classify_dataframe(df)
+    masker = EntityMasker(FakerProvider(seed=1), MappingStore(), consistent=False)
+
+    masked_df, _ = mask_dataframe(
+        df, classifications, "Sheet1", FakerProvider(seed=1),
+        consistent=False, mapping_store=MappingStore(), entity_masker=masker,
+    )
+
+    primary = masker.primary_person()
+    assert primary is not None
+    assert masked_df.loc[0, "name"] == primary.full_name
