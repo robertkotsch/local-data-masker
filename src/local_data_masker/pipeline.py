@@ -48,6 +48,7 @@ class PreprocessConfig:
     consistent: bool = False
     dry_run: bool = False
     omit_originals: bool = True
+    mask_filenames: bool = True
     seed: int | None = None
 
 
