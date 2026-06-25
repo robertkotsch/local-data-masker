@@ -5,6 +5,52 @@ import pandas as pd
 from local_data_masker.pipeline import PreprocessConfig, preprocess
 
 
+def test_folder_masking_renames_pii_output_paths(tmp_path: Path) -> None:
+    input_root = tmp_path / "in"
+    person_dir = input_root / "Abaira_Amina_14_12_1990"
+    person_dir.mkdir(parents=True)
+    pd.DataFrame({"name": ["Amina Abaira"]}).to_csv(person_dir / "record.csv", index=False)
+
+    profile_path = tmp_path / "p.yaml"
+    profile_path.write_text(
+        'filename_patterns:\n  - "(?P<name_last>[^_]+)_(?P<name_first>[^_]+)_(?P<dob>\\\\d{2}_\\\\d{2}_\\\\d{4})"\n',
+        encoding="utf-8",
+    )
+
+    output_root = tmp_path / "out"
+    results = preprocess(
+        PreprocessConfig(
+            input_path=input_root,
+            output_path=output_root,
+            profile_path=profile_path,
+            mask_filenames=True,
+            seed=1,
+        )
+    )
+
+    masked_file = Path(results[0].masked_file)
+    assert masked_file.exists()
+    assert "Abaira_Amina_14_12_1990" not in str(masked_file)
+    assert masked_file.name == "record.csv"
+
+
+def test_keep_filenames_preserves_folder_structure(tmp_path: Path) -> None:
+    input_root = tmp_path / "in"
+    person_dir = input_root / "Abaira_Amina_14_12_1990"
+    person_dir.mkdir(parents=True)
+    pd.DataFrame({"name": ["Amina Abaira"]}).to_csv(person_dir / "record.csv", index=False)
+
+    results = preprocess(
+        PreprocessConfig(
+            input_path=input_root,
+            output_path=tmp_path / "out",
+            mask_filenames=False,
+            seed=1,
+        )
+    )
+    assert "Abaira_Amina_14_12_1990" in str(results[0].masked_file)
+
+
 def test_preprocess_pipeline_creates_masked_output_and_report(tmp_path: Path) -> None:
     input_path = tmp_path / "raw.csv"
     output_path = tmp_path / "masked.csv"
