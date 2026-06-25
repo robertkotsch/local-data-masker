@@ -33,3 +33,6 @@ mapping.json
 # Local input data used during manual testing
 input/
 inputs/
+
+#Export folder in Examples
+Export/
