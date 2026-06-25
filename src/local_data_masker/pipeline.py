@@ -9,6 +9,7 @@ or other processing workflows.
 from __future__ import annotations
 
 import itertools
+import warnings
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Iterator
@@ -71,6 +72,10 @@ class MappingFileWarning(UserWarning):
     """Warning category for sensitive mapping-file handling."""
 
 
+class FilenameMaskingWarning(UserWarning):
+    """Warned when filename masking is enabled but no filename_patterns are configured."""
+
+
 def preprocess(
     config: PreprocessConfig,
     progress_callback: ProgressCallback | None = None,
@@ -103,6 +108,19 @@ def preprocess(
 
     masking_profile = load_profile(config.profile_path)
     _prepare_output_location(config)
+
+    if (
+        config.mask_filenames
+        and not config.input_path.is_file()
+        and not masking_profile.filename_patterns
+    ):
+        warnings.warn(
+            "mask_filenames is enabled but the profile defines no filename_patterns; "
+            "file and folder names will NOT be masked. Add filename_patterns to your "
+            "profile (e.g. profiles/health_records.yaml) or pass --keep-filenames.",
+            FilenameMaskingWarning,
+            stacklevel=2,
+        )
 
     mapping_store = MappingStore()
     if config.consistent and config.mapping_path is not None:

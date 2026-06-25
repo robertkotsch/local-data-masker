@@ -1,6 +1,8 @@
+import warnings
 from pathlib import Path
 
 import pandas as pd
+import pytest
 
 from local_data_masker.pipeline import PreprocessConfig, preprocess
 
@@ -147,3 +149,38 @@ def test_dry_run_folder_scan_report_does_not_leak_pii_path(tmp_path: Path) -> No
 
     assert "Abaira_Amina_14_12_1990" not in results[0].report["source_file"]
     assert "original_source_file" not in results[0].report  # omitted by default
+
+
+def test_warns_when_folder_masking_enabled_but_no_filename_patterns(tmp_path: Path) -> None:
+    input_root = tmp_path / "in"
+    person_dir = input_root / "Abaira_Amina_14_12_1990"
+    person_dir.mkdir(parents=True)
+    pd.DataFrame({"name": ["Amina Abaira"]}).to_csv(person_dir / "record.csv", index=False)
+
+    with pytest.warns(UserWarning, match="filename_patterns"):
+        preprocess(
+            PreprocessConfig(
+                input_path=input_root,
+                output_path=tmp_path / "out",
+                mask_filenames=True,   # no profile -> no filename_patterns
+                seed=1,
+            )
+        )
+
+
+def test_no_warning_when_keep_filenames(tmp_path: Path) -> None:
+    input_root = tmp_path / "in"
+    person_dir = input_root / "Abaira_Amina_14_12_1990"
+    person_dir.mkdir(parents=True)
+    pd.DataFrame({"name": ["Amina Abaira"]}).to_csv(person_dir / "record.csv", index=False)
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")  # any warning becomes an error
+        preprocess(
+            PreprocessConfig(
+                input_path=input_root,
+                output_path=tmp_path / "out",
+                mask_filenames=False,
+                seed=1,
+            )
+        )
