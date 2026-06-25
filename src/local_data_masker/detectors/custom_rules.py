@@ -41,6 +41,7 @@ class MaskingProfile:
 
     custom_replacements: dict[str, str] = field(default_factory=dict)
     column_categories: dict[str, CategoryRule] = field(default_factory=dict)
+    filename_patterns: tuple[re.Pattern, ...] = ()
 
     @classmethod
     def empty(cls) -> "MaskingProfile":
@@ -54,7 +55,12 @@ class MaskingProfile:
 
         custom_replacements = _load_custom_replacements(raw.get("custom_replacements", {}))
         column_categories = _load_column_categories(raw.get("column_categories", {}))
-        return cls(custom_replacements=custom_replacements, column_categories=column_categories)
+        filename_patterns = _load_filename_patterns(raw.get("filename_patterns", []))
+        return cls(
+            custom_replacements=custom_replacements,
+            column_categories=column_categories,
+            filename_patterns=filename_patterns,
+        )
 
     def classify_column(self, column: str) -> ColumnClassification | None:
         """Return a semantic classification for a column, if a profile rule matches."""
@@ -135,6 +141,20 @@ def _load_column_categories(raw: Any) -> dict[str, CategoryRule]:
         )
 
     return rules
+
+
+def _load_filename_patterns(raw: Any) -> tuple[re.Pattern, ...]:
+    if raw is None:
+        return ()
+    if not isinstance(raw, list):
+        raise ValueError("filename_patterns must be a list of regex strings")
+    patterns: list[re.Pattern] = []
+    for item in raw:
+        try:
+            patterns.append(re.compile(str(item)))
+        except re.error as exc:
+            raise ValueError(f"Invalid filename pattern {item!r}: {exc}") from exc
+    return tuple(patterns)
 
 
 

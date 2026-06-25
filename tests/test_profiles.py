@@ -1,6 +1,8 @@
+import re
 from pathlib import Path
 
 import pandas as pd
+import pytest
 
 from local_data_masker.detectors.custom_rules import MaskingProfile
 from local_data_masker.detectors.regex_detector import classify_dataframe
@@ -82,3 +84,32 @@ def test_report_omits_original_values_by_default() -> None:
 
     assert "original" not in report["replacements"][0]
     assert report["replacements"][0]["masked"] == "Healthy Nutrition"
+
+
+def test_filename_patterns_compile_with_named_groups(tmp_path: Path) -> None:
+    profile_path = tmp_path / "profile.yaml"
+    profile_path.write_text(
+        """
+filename_patterns:
+  - "(?P<name_last>[^_]+)_(?P<name_first>[^_]+)_(?P<dob>\\\\d{2}_\\\\d{2}_\\\\d{4})"
+""".strip(),
+        encoding="utf-8",
+    )
+    profile = MaskingProfile.from_file(profile_path)
+
+    assert len(profile.filename_patterns) == 1
+    match = profile.filename_patterns[0].search("Abaira_Amina_14_12_1990")
+    assert match is not None
+    assert match.group("name_last") == "Abaira"
+    assert match.group("name_first") == "Amina"
+    assert match.group("dob") == "14_12_1990"
+
+
+def test_malformed_filename_pattern_raises(tmp_path: Path) -> None:
+    profile_path = tmp_path / "profile.yaml"
+    profile_path.write_text(
+        'filename_patterns:\n  - "(?P<bad>["\n',
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError):
+        MaskingProfile.from_file(profile_path)
