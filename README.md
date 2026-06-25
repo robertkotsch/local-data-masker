@@ -2,8 +2,8 @@
 
 A pluggable pre-processing layer that turns sensitive real-world data into masked, realistic, and useful datasets before the actual AI, analytics, RAG, or cloud-processing workflow begins.
 
-> **Status:** Phase 3 started  
-> **Current focus:** structured data masking, semantic replacement profiles, coherent row-level entity masking, an importable pre-processing pipeline API, adaptive masking-plan generation, and PDF extraction concepts inspired by the AMVU Dashboard project.
+> **Status:** Phase 3 complete; Phase 4+ planned  
+> **Current focus:** structured data masking, semantic replacement profiles, coherent row-level entity masking (names, emails, and aligned person IDs), an importable pre-processing pipeline API, adaptive masking-plan generation, and PDF extraction concepts inspired by the AMVU Dashboard project.
 
 ---
 
@@ -53,7 +53,7 @@ See also:
 
 ## What works now
 
-Phase 1 to early Phase 3 currently supports:
+Phases 1 to 3 currently support:
 
 - CSV files
 - Excel files (`.xlsx`, `.xls`)
