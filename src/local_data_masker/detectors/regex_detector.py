@@ -15,8 +15,17 @@ import pandas as pd
 
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 PHONE_RE = re.compile(r"^\+?[0-9][0-9\-\s().]{6,}[0-9]$")
-DATE_RE = re.compile(r"^\d{4}[/-]\d{1,2}[/-]\d{1,2}$|^\d{1,2}[/-]\d{1,2}[/-]\d{4}$")
+# Accepts "/", "-", or "." separators (the latter is common in German dates).
+DATE_RE = re.compile(r"^\d{4}[/.-]\d{1,2}[/.-]\d{1,2}$|^\d{1,2}[/.-]\d{1,2}[/.-]\d{4}$")
 IBAN_RE = re.compile(r"^[A-Z]{2}\d{2}[A-Z0-9]{10,30}$")
+
+# Column-name keywords for postal/street addresses (English + German).
+ADDRESS_KEYWORDS = ("address", "anschrift", "street", "strasse", "straße")
+
+# Column-name keywords that mark a person who is NOT the record's subject
+# (e.g. an examining doctor). Such people are still masked, but they must not be
+# folded into the row's primary identity.
+THIRD_PARTY_PERSON_KEYWORDS = ("examiner", "untersucher", "arzt", "doctor", "physician")
 
 # Column-name keywords that exclude a column from the "name" category even
 # though they contain the substring "name" (e.g. "company_name").
@@ -40,6 +49,13 @@ CATEGORY_DATE_OF_BIRTH = "date_of_birth"
 CATEGORY_DATE = "date"
 CATEGORY_IBAN = "iban"
 CATEGORY_ID = "id"
+CATEGORY_ADDRESS = "address"
+
+
+def is_third_party_person_column(column: str) -> bool:
+    """True if a column names a non-subject person (e.g. an examining doctor)."""
+    name = column.strip().lower()
+    return any(keyword in name for keyword in THIRD_PARTY_PERSON_KEYWORDS)
 
 
 @dataclass(frozen=True)
@@ -62,6 +78,10 @@ def classify_column(column: str, values: list[str]) -> ColumnClassification:
 
     if "email" in name or "e-mail" in name:
         return ColumnClassification(column, CATEGORY_EMAIL, 0.95)
+    if any(keyword in name for keyword in ADDRESS_KEYWORDS):
+        return ColumnClassification(column, CATEGORY_ADDRESS, 0.9)
+    if is_third_party_person_column(name):
+        return ColumnClassification(column, CATEGORY_NAME, 0.85)
     if "iban" in name:
         return ColumnClassification(column, CATEGORY_IBAN, 0.95)
     if "phone" in name or "tel" in name or "mobile" in name:
@@ -84,13 +104,15 @@ def classify_column(column: str, values: list[str]) -> ColumnClassification:
     if iban_ratio >= 0.6:
         return ColumnClassification(column, CATEGORY_IBAN, round(iban_ratio, 2))
 
-    phone_ratio = _matches_ratio(values, PHONE_RE)
-    if phone_ratio >= 0.6:
-        return ColumnClassification(column, CATEGORY_PHONE, round(phone_ratio, 2))
-
+    # Dates are checked before phones: a date-shaped value (e.g. "14.12.1990")
+    # can also satisfy the looser phone pattern, so the more specific wins.
     date_ratio = _matches_ratio(values, DATE_RE)
     if date_ratio >= 0.6:
         return ColumnClassification(column, CATEGORY_DATE, round(date_ratio, 2))
+
+    phone_ratio = _matches_ratio(values, PHONE_RE)
+    if phone_ratio >= 0.6:
+        return ColumnClassification(column, CATEGORY_PHONE, round(phone_ratio, 2))
 
     return ColumnClassification(column, None, 0.0)
 

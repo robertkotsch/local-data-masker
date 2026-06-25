@@ -18,12 +18,14 @@ from local_data_masker.detectors.regex_detector import (
     CATEGORY_ID,
     CATEGORY_NAME,
     ColumnClassification,
+    is_third_party_person_column,
 )
 from local_data_masker.maskers.faker_provider import FakePerson, FakerProvider
 from local_data_masker.maskers.mapping_store import MappingStore
 
 ENTITY_NAME_CATEGORY = "entity.name"
 ENTITY_EMAIL_CATEGORY = "entity.email"
+ENTITY_ID_CATEGORY = "entity.id"
 
 
 @dataclass(frozen=True)
@@ -55,6 +57,7 @@ class EntityMasker:
         self._mapping_store = mapping_store
         self._consistent = consistent
         self._cache: dict[str, EntityContext] = {}
+        self._id_cache: dict[str, str] = {}
 
     def context_for_row(
         self,
@@ -74,6 +77,30 @@ class EntityMasker:
         context = EntityContext(key=key, person=person)
         self._cache[key] = context
         return context
+
+    def id_for(self, context: EntityContext, original_id: str) -> str:
+        """Return a coherent fake ID for an entity, generated once per identity.
+
+        A person's ID belongs to that person, so a repeated identity reuses one
+        fake ID within the run (and across runs when consistent masking is on),
+        mirroring how the entity's name and email already cohere. The fake ID is
+        derived from ``original_id`` so its format (prefix, digit count) is kept.
+        """
+        cached = self._id_cache.get(context.key)
+        if cached is not None:
+            return cached
+
+        if self._consistent:
+            stored = self._mapping_store.get(ENTITY_ID_CATEGORY, context.key)
+            if stored:
+                self._id_cache[context.key] = stored
+                return stored
+
+        fake_id = self._faker_provider.generate(CATEGORY_ID, original_id)
+        self._id_cache[context.key] = fake_id
+        if self._consistent:
+            self._mapping_store.set(ENTITY_ID_CATEGORY, context.key, fake_id)
+        return fake_id
 
     def _load_or_create_person(self, key: str) -> FakePerson:
         if self._consistent:
@@ -106,6 +133,8 @@ def _identity_key(row: pd.Series, classifications: dict[str, ColumnClassificatio
     for category in (CATEGORY_EMAIL, CATEGORY_NAME, CATEGORY_ID):
         for column, classification in classifications.items():
             if classification.category != category or column not in row:
+                continue
+            if is_third_party_person_column(column):
                 continue
             value = _normalize_value(row[column])
             if value:

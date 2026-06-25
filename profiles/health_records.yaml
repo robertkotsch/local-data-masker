@@ -1,0 +1,41 @@
+# Tailored profile for occupational-health examination records
+# (Arbeitsmedizinische Vorsorgeuntersuchung / Untersuchungskartei).
+#
+# The built-in detector now natively handles addresses, examiner names, and
+# dotted German dates, so this profile is ADDITIVE. It documents the German
+# column-name aliases an extractor might emit and masks recurring institutional
+# text that is not a per-row PII field.
+#
+# Keep this file free of real patient or staff data.
+
+# Only the institution NAME is replaced here. Do NOT add the clinic's street or
+# postcode as custom replacements: custom replacements run first and short-circuit
+# category masking, so a patient who shares that postcode would have their address
+# only partially masked. Addresses are fully handled by the `address` category.
+custom_replacements:
+  Klinikum Chemnitz gGmbH: Beispielklinik Musterstadt gGmbH
+
+column_categories:
+  # Patient / staff person names. "untersucher" (examiner) is detected as a
+  # name but is masked as a separate identity, never the patient's.
+  name:
+    columns:
+      - name
+      - patient
+      - untersucher
+      - examiner
+
+  # Postal address (German "Anschrift").
+  address:
+    columns:
+      - address
+      - anschrift
+      - strasse
+      - straße
+
+  # Date of birth ("geboren am" / "geb.").
+  date_of_birth:
+    columns:
+      - date_of_birth
+      - geburtsdatum
+      - geb

@@ -48,6 +48,32 @@ def test_name_and_email_are_masked_as_one_coherent_entity() -> None:
     assert {replacement.category for replacement in replacements} == {"name", "email"}
 
 
+def test_person_id_is_aligned_with_the_coherent_entity() -> None:
+    df = pd.DataFrame(
+        {
+            "name": ["Ben Miller", "Ben Miller"],
+            "email": ["ben.miller@example.com", "ben.miller@example.com"],
+            "employee_id": ["EMP-481927", "EMP-481927"],
+        }
+    )
+
+    masked_df, _ = mask_dataframe(
+        df,
+        classify_dataframe(df),
+        "Sheet1",
+        FakerProvider(seed=3),
+        consistent=False,
+        mapping_store=MappingStore(),
+    )
+
+    # The ID belongs to the person, so a repeated person reuses one fake ID
+    # within the run, mirroring how name/email already cohere.
+    assert masked_df.loc[0, "employee_id"] == masked_df.loc[1, "employee_id"]
+    assert masked_df.loc[0, "employee_id"] != "EMP-481927"
+    # Format is preserved (EMP- prefix + 6 digits).
+    assert re.match(r"^EMP-\d{6}$", masked_df.loc[0, "employee_id"])
+
+
 def test_repeated_email_reuses_the_same_fake_entity_within_one_run() -> None:
     df = pd.DataFrame(
         {

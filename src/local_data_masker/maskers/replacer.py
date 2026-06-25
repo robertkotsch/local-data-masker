@@ -21,6 +21,7 @@ from local_data_masker.detectors.regex_detector import (
     IBAN_RE,
     PHONE_RE,
     ColumnClassification,
+    is_third_party_person_column,
 )
 from local_data_masker.maskers.entity_masker import EntityMasker
 from local_data_masker.maskers.faker_provider import FakerProvider
@@ -101,8 +102,20 @@ def mask_dataframe(
                 if not _should_mask_value(category, original_str):
                     continue
 
-                if entity_context is not None and category in ENTITY_CATEGORIES:
+                if (
+                    entity_context is not None
+                    and category in ENTITY_CATEGORIES
+                    and not is_third_party_person_column(column_name)
+                ):
                     fake_value = entity_context.replacement_for(category)
+
+                if (
+                    fake_value is None
+                    and category == CATEGORY_ID
+                    and entity_context is not None
+                    and not is_third_party_person_column(column_name)
+                ):
+                    fake_value = entity_masker.id_for(entity_context, original_str)
 
                 if fake_value is None and consistent:
                     fake_value = mapping_store.get(category, original_str)

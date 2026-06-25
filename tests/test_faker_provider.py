@@ -1,4 +1,7 @@
+import re
+
 from local_data_masker.detectors.regex_detector import (
+    CATEGORY_ADDRESS,
     CATEGORY_DATE,
     CATEGORY_EMAIL,
     CATEGORY_ID,
@@ -27,6 +30,20 @@ def test_generate_date_preserves_format():
     assert len(fake.split("/")) == 3
     year, month, day = fake.split("/")
     assert len(year) == 4
+
+
+def test_generate_dotted_date_preserves_format():
+    provider = FakerProvider(seed=42)
+    fake = provider.generate(CATEGORY_DATE, "14.12.1990")
+    assert re.match(r"^\d{1,2}\.\d{1,2}\.\d{4}$", fake)
+    assert fake != "14.12.1990"
+
+
+def test_generate_address_returns_nonempty_string():
+    provider = FakerProvider(seed=42)
+    fake = provider.generate(CATEGORY_ADDRESS, "Scheffelstr.14, 09120 Chemnitz")
+    assert isinstance(fake, str) and fake.strip()
+    assert fake != "Scheffelstr.14, 09120 Chemnitz"
 
 
 def test_generate_name_returns_nonempty_string():

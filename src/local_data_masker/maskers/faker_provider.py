@@ -12,6 +12,7 @@ from typing import Sequence
 from faker import Faker
 
 from local_data_masker.detectors.regex_detector import (
+    CATEGORY_ADDRESS,
     CATEGORY_DATE,
     CATEGORY_DATE_OF_BIRTH,
     CATEGORY_EMAIL,
@@ -24,8 +25,10 @@ from local_data_masker.detectors.regex_detector import (
 DATE_FORMATS = (
     ("%Y/%m/%d", re.compile(r"^\d{4}/\d{1,2}/\d{1,2}$")),
     ("%Y-%m-%d", re.compile(r"^\d{4}-\d{1,2}-\d{1,2}$")),
+    ("%Y.%m.%d", re.compile(r"^\d{4}\.\d{1,2}\.\d{1,2}$")),
     ("%d/%m/%Y", re.compile(r"^\d{1,2}/\d{1,2}/\d{4}$")),
     ("%d-%m-%Y", re.compile(r"^\d{1,2}-\d{1,2}-\d{4}$")),
+    ("%d.%m.%Y", re.compile(r"^\d{1,2}\.\d{1,2}\.\d{4}$")),
 )
 
 COURSE_TITLES = (
@@ -140,6 +143,10 @@ def _generate_iban(faker: Faker, original: str) -> str:
     return faker.iban()
 
 
+def _generate_address(faker: Faker, original: str) -> str:
+    return f"{faker.street_address()}, {faker.postcode()} {faker.city()}"
+
+
 def _generate_id(faker: Faker, original: str) -> str:
     digits = re.sub(r"\D", "", original)
     if not digits:
@@ -226,6 +233,7 @@ _GENERATORS = {
     CATEGORY_DATE_OF_BIRTH: _generate_date_of_birth,
     CATEGORY_IBAN: _generate_iban,
     CATEGORY_ID: _generate_id,
+    CATEGORY_ADDRESS: _generate_address,
     "course_title": _generate_course_title,
     "training_name": _generate_course_title,
     "topic": _generate_course_title,

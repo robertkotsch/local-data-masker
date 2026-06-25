@@ -88,11 +88,43 @@ Phase 1 to early Phase 3 currently supports:
 
 ## Getting started
 
+The project is installed into a local virtual environment (`.venv/`), which is
+git-ignored, so each developer creates their own. Requires Python 3.10+.
+
+**Create the virtual environment** (once):
+
 ```bash
-python3 -m venv .venv
+python -m venv .venv
+```
+
+**Activate it** (per terminal session):
+
+```bash
+# Linux / macOS
 source .venv/bin/activate
+
+# Windows PowerShell
+.venv\Scripts\Activate.ps1
+
+# Windows cmd.exe
+.venv\Scripts\activate.bat
+```
+
+> If PowerShell blocks activation with an execution-policy error, run once:
+> `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`
+
+**Install the project and its dev dependencies** (editable install, so code
+changes take effect without reinstalling):
+
+```bash
 pip install -e ".[dev]"
 ```
+
+Once activated, the `local-data-masker` command and `pytest` resolve to the
+versions inside `.venv`. Run `deactivate` to exit the environment. If you prefer
+not to activate, you can call the tools directly, e.g.
+`.venv\Scripts\local-data-masker.exe ...` on Windows or
+`.venv/bin/local-data-masker ...` on Linux/macOS.
 
 Mask the included example file:
 
@@ -466,81 +498,81 @@ local-data-masker/
 
 ## Roadmap
 
-### Phase 1: Structured data masking
+### Phase 1: Structured data masking ✅
 
-- Read CSV and Excel files
-- Detect names, emails, phone numbers, IDs, IBANs, and dates
-- Replace values with fake data
-- Export masked CSV/XLSX files
-- Generate JSON audit reports
+- [x] Read CSV and Excel files
+- [x] Detect names, emails, phone numbers, IDs, IBANs, and dates
+- [x] Replace values with fake data
+- [x] Export masked CSV/XLSX files
+- [x] Generate JSON audit reports
 
-### Phase 2: Profile-based semantic masking
+### Phase 2: Profile-based semantic masking ✅
 
-- Add YAML-based replacement rules
-- Support project-specific masking categories
-- Add semantic replacements for course titles, project names, companies, departments, and products
-- Make reports safer by default
+- [x] Add YAML-based replacement rules
+- [x] Support project-specific masking categories
+- [x] Add semantic replacements for course titles, project names, companies, departments, and products
+- [x] Make reports safer by default
 
-### Phase 3: Coherent entity masking and pre-processing API
+### Phase 3: Coherent entity masking and pre-processing API ✅
 
-- Keep fake names and generated emails aligned
-- Reuse the same fake person identity for repeated email/name records
-- Persist coherent fake identities when `--consistent` and `--mapping` are used
-- Provide an importable `preprocess()` API for other projects
-- Next: align person-specific IDs more explicitly with the generated entity
+- [x] Keep fake names and generated emails aligned
+- [x] Reuse the same fake person identity for repeated email/name records
+- [x] Persist coherent fake identities when `--consistent` and `--mapping` are used
+- [x] Provide an importable `preprocess()` API for other projects
+- [x] Align person-specific IDs with the generated entity
 
 ### Phase 4: Adaptive masking-plan generation
 
-- Add data profiling and representative sampling
-- Add local LLM-assisted masking-plan inference
-- Add editable YAML/JSON masking plans
-- Add `plan`, `apply`, and `preprocess --auto-plan` command flow
-- Add confidence scores and review-required flags
+- [ ] Add data profiling and representative sampling
+- [ ] Add local LLM-assisted masking-plan inference
+- [ ] Add editable YAML/JSON masking plans
+- [ ] Add `plan`, `apply`, and `preprocess --auto-plan` command flow
+- [ ] Add confidence scores and review-required flags
 
 ### Phase 5: Generic PDF extraction and profiling
 
-- Add a `pdf_extractor.py` based on the AMVU extraction lessons
-- Extract text and tables with `pdfplumber`
-- Preserve page order, table order, and continuation-table candidates
-- Generate extraction warnings for unreadable/scanned/problematic PDFs
-- Produce PDF structure profiles for masking-plan inference
-- Add serial and parallel batch-processing modes
+- [ ] Add a `pdf_extractor.py` based on the AMVU extraction lessons
+- [ ] Extract text and tables with `pdfplumber`
+- [ ] Preserve page order, table order, and continuation-table candidates
+- [ ] Generate extraction warnings for unreadable/scanned/problematic PDFs
+- [ ] Produce PDF structure profiles for masking-plan inference
+- [ ] Add serial and parallel batch-processing modes
 
 ### Phase 6: Large dataset workflows
 
-- Add dataset manifests
-- Add chunked CSV processing
-- Add Parquet support
-- Add resumable batch jobs
-- Add validation summaries for masked datasets
+- [ ] Add dataset manifests
+- [ ] Add chunked CSV processing
+- [ ] Add Parquet support
+- [ ] Add resumable batch jobs
+- [ ] Add validation summaries for masked datasets
 
 ### Phase 7: PDF and document masking
 
-- Detect sensitive values in extracted PDF text and tables
-- Replace values in text output
-- Evaluate PDF reconstruction options
-- Evaluate PDF overlay/redaction options carefully, ensuring hidden text is not leaked
+- [ ] Detect sensitive values in extracted PDF text and tables
+- [ ] Replace values in text output
+- [ ] Evaluate PDF reconstruction options
+- [ ] Evaluate PDF overlay/redaction options carefully, ensuring hidden text is not leaked
 
 ### Phase 8: Cloud AI export workflows
 
-- Add masked-only export adapters
-- Prepare datasets for embedding/RAG pipelines
-- Add vector-ingestion export formats
-- Add LLM evaluation dataset formats
+- [ ] Add masked-only export adapters
+- [ ] Prepare datasets for embedding/RAG pipelines
+- [ ] Add vector-ingestion export formats
+- [ ] Add LLM evaluation dataset formats
 
 ### Phase 9: Review workflow and UI
 
-- Add a review report
-- Mark uncertain detections
-- Add allowlist and blocklist support
-- Add manual approval before export
-- Add a simple local review UI
+- [ ] Add a review report
+- [ ] Mark uncertain detections
+- [ ] Add allowlist and blocklist support
+- [ ] Add manual approval before export
+- [ ] Add a simple local review UI
 
 ### Phase 10: OCR and visual documents
 
-- Add OCR support for scanned PDFs and images
-- Detect personal data in OCR text
-- Explore visual redaction overlays or PDF layer replacement
+- [ ] Add OCR support for scanned PDFs and images
+- [ ] Detect personal data in OCR text
+- [ ] Explore visual redaction overlays or PDF layer replacement
 
 ---
 
