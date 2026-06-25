@@ -142,4 +142,20 @@ def test_person_for_value_is_coherent_for_repeated_value() -> None:
     a = masker.person_for_value(CATEGORY_NAME, "Amina Abaira")
     b = masker.person_for_value(CATEGORY_NAME, "amina   abaira")
     assert a == b
+
+
+def test_person_for_value_returns_none_for_empty_value() -> None:
+    masker = EntityMasker(FakerProvider(seed=5), MappingStore(), consistent=False)
     assert masker.person_for_value(CATEGORY_NAME, "") is None
+
+
+def test_person_for_value_reuses_identity_from_context_for_row() -> None:
+    from local_data_masker.detectors.regex_detector import ColumnClassification
+
+    masker = EntityMasker(FakerProvider(seed=5), MappingStore(), consistent=False)
+    row = pd.Series({"name": "Amina Abaira"})
+    classifications = {"name": ColumnClassification(column="name", category=CATEGORY_NAME, confidence=0.85)}
+    context = masker.context_for_row(row, classifications)
+
+    assert context is not None
+    assert masker.person_for_value(CATEGORY_NAME, "Amina Abaira") == context.person
