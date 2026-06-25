@@ -120,3 +120,30 @@ def test_preprocess_pipeline_progress_callback(tmp_path: Path) -> None:
     assert len(seen) == 1
     assert seen[0].source_file == str(input_path)
     assert seen[0].masked_file == str(output_path)
+
+
+def test_dry_run_folder_scan_report_does_not_leak_pii_path(tmp_path: Path) -> None:
+    input_root = tmp_path / "in"
+    person_dir = input_root / "Abaira_Amina_14_12_1990"
+    person_dir.mkdir(parents=True)
+    pd.DataFrame({"name": ["Amina Abaira"]}).to_csv(person_dir / "record.csv", index=False)
+
+    profile_path = tmp_path / "p.yaml"
+    profile_path.write_text(
+        'filename_patterns:\n  - "(?P<name_last>[^_]+)_(?P<name_first>[^_]+)_(?P<dob>\\\\d{2}_\\\\d{2}_\\\\d{4})"\n',
+        encoding="utf-8",
+    )
+
+    results = preprocess(
+        PreprocessConfig(
+            input_path=input_root,
+            output_path=tmp_path / "out",
+            profile_path=profile_path,
+            dry_run=True,
+            mask_filenames=True,
+            seed=1,
+        )
+    )
+
+    assert "Abaira_Amina_14_12_1990" not in results[0].report["source_file"]
+    assert "original_source_file" not in results[0].report  # omitted by default
