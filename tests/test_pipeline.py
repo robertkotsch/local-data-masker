@@ -32,6 +32,7 @@ def test_folder_masking_renames_pii_output_paths(tmp_path: Path) -> None:
     assert masked_file.exists()
     assert "Abaira_Amina_14_12_1990" not in str(masked_file)
     assert masked_file.name == "record.csv"
+    assert masked_file.parent != output_root  # still nested under a (renamed) subfolder
 
 
 def test_keep_filenames_preserves_folder_structure(tmp_path: Path) -> None:

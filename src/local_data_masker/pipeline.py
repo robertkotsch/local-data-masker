@@ -11,7 +11,7 @@ from __future__ import annotations
 import itertools
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Iterator
 
 import pandas as pd
 
@@ -185,7 +185,7 @@ def _process_file(
     faker_provider: FakerProvider,
     mapping_store: MappingStore,
     used_paths: set[str],
-    path_counter,
+    path_counter: Iterator[int],
 ) -> PreprocessResult:
     sheets = load_table(file_path)
     masked_sheets = {}
@@ -244,7 +244,7 @@ def _resolve_output_path(
     mapping_store: MappingStore,
     entity_masker: EntityMasker,
     used_paths: set[str],
-    path_counter,
+    path_counter: Iterator[int],
 ) -> Path:
     if config.input_path.is_file():
         return config.output_path
